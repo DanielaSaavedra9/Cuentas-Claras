@@ -1,98 +1,143 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useEffect, useState } from "react";
+import { Button, StyleSheet, TextInput } from "react-native";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+// --- Autenticación (Firebase Auth) ---
+import { createUserWithEmailAndPassword } from "firebase/auth";
+// --- Firestore ---
+import { addDoc, collection, onSnapshot } from "firebase/firestore";
+
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import { auth, db } from "../../firebaseConfig";
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  // --- Autenticación: estado del formulario de registro ---
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [authMessage, setAuthMessage] = useState("");
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
+  // --- Firestore: estado del contador de documentos en tiempo real ---
+  const [itemCount, setItemCount] = useState(0);
+  const [firestoreMessage, setFirestoreMessage] = useState("");
+
+  // --- Firestore: listener en tiempo real sobre la colección "testItems" ---
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      collection(db, "testItems"),
+      (snapshot) => {
+        setItemCount(snapshot.size);
+      },
+      (error) => {
+        setFirestoreMessage(`Error al escuchar Firestore: ${error.message}`);
+      },
+    );
+
+    return unsubscribe;
+  }, []);
+
+  // --- Autenticación: registro de usuario con correo y contraseña ---
+  const handleRegister = async () => {
+    setAuthMessage("");
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      setAuthMessage("Usuario registrado correctamente.");
+    } catch (error: any) {
+      setAuthMessage(`Error al registrar: ${error.message}`);
+    }
+  };
+
+  // --- Firestore: agregar un documento a la colección "testItems" ---
+  const handleAddItem = async () => {
+    setFirestoreMessage("");
+    try {
+      await addDoc(collection(db, "testItems"), {
+        createdAt: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      setFirestoreMessage(`Error al escribir en Firestore: ${error.message}`);
+    }
+  };
+
+  const textColor = useThemeColor({}, "text");
+  const placeholderColor = useThemeColor({ light: "#687076", dark: "#9BA1A6" }, "icon");
+
+  return (
+    <ThemedView style={styles.container}>
+      <ThemedText style={styles.title}>Prueba técnica: Firebase</ThemedText>
+
+      {/* --- Autenticación --- */}
+      <ThemedView style={styles.section}>
+        <ThemedText style={styles.sectionTitle}>Registro de usuario</ThemedText>
+        <TextInput
+          style={[styles.input, { color: textColor }]}
+          placeholder="Correo electrónico"
+          placeholderTextColor={placeholderColor}
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+        <TextInput
+          style={[styles.input, { color: textColor }]}
+          placeholder="Contraseña"
+          placeholderTextColor={placeholderColor}
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+        <Button title="Registrarme" onPress={handleRegister} />
+        {authMessage ? <ThemedText style={styles.message}>{authMessage}</ThemedText> : null}
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
+
+      {/* --- Firestore --- */}
+      <ThemedView style={styles.section}>
+        <ThemedText style={styles.sectionTitle}>Firestore en tiempo real</ThemedText>
+        <ThemedText style={styles.counter}>
+          Documentos en "testItems": {itemCount}
         </ThemedText>
+        <Button title="Agregar documento" onPress={handleAddItem} />
+        {firestoreMessage ? (
+          <ThemedText style={styles.message}>{firestoreMessage}</ThemedText>
+        ) : null}
       </ThemedView>
-    </ParallaxScrollView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    padding: 24,
+    justifyContent: "center",
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  title: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 24,
+    textAlign: "center",
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  section: {
+    marginBottom: 32,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 12,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  counter: {
+    fontSize: 16,
+    marginBottom: 12,
+  },
+  message: {
+    marginTop: 12,
   },
 });
