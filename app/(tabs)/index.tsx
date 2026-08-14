@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
+    Image,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -12,70 +13,31 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// --- Autenticación (Firebase Auth) ---
 import { createUserWithEmailAndPassword } from "firebase/auth";
-// --- Firestore ---
-import { addDoc, collection, onSnapshot } from "firebase/firestore";
 
 import { brandColors as colors } from "@/constants/brand-colors";
 import { brandFonts as fonts } from "@/constants/brand-fonts";
-import { auth, db } from "../../firebaseConfig";
+import { auth } from "../../firebaseConfig";
 
 export default function HomeScreen() {
   const router = useRouter();
 
-  // --- Autenticación: estado del formulario de registro ---
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authMessage, setAuthMessage] = useState("");
 
-  // --- Firestore: estado del contador de documentos en tiempo real ---
-  const [itemCount, setItemCount] = useState(0);
-  const [firestoreMessage, setFirestoreMessage] = useState("");
-
-  // --- Firestore: listener en tiempo real sobre la colección "testItems" ---
-  useEffect(() => {
-    const unsubscribe = onSnapshot(
-      collection(db, "testItems"),
-      (snapshot) => {
-        setItemCount(snapshot.size);
-      },
-      (error) => {
-        setFirestoreMessage(`Error al escuchar Firestore: ${error.message}`);
-      },
-    );
-
-    return unsubscribe;
-  }, []);
-
-  // --- Autenticación: registro de usuario con correo y contraseña ---
   const handleRegister = async () => {
     setAuthMessage("");
     try {
       await createUserWithEmailAndPassword(auth, email, password);
       setAuthMessage("Usuario registrado correctamente.");
-      // Tras el login/registro, la sección de gráficos vive en una pantalla
-      // aparte (ver app/dashboard.tsx).
       router.push("/dashboard");
     } catch (error: any) {
       setAuthMessage(`Error al registrar: ${error.message}`);
     }
   };
 
-  // --- Firestore: agregar un documento a la colección "testItems" ---
-  const handleAddItem = async () => {
-    setFirestoreMessage("");
-    try {
-      await addDoc(collection(db, "testItems"), {
-        createdAt: new Date().toISOString(),
-      });
-    } catch (error: any) {
-      setFirestoreMessage(`Error al escribir en Firestore: ${error.message}`);
-    }
-  };
-
   const isAuthError = authMessage.startsWith("Error");
-  const isFirestoreError = firestoreMessage.startsWith("Error");
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
@@ -87,24 +49,19 @@ export default function HomeScreen() {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          {/* --- Marca --- */}
           <View style={styles.brand}>
-            <View style={styles.logoBadge}>
-              <Text style={styles.logoCheck}>✓</Text>
-            </View>
-            <Text style={styles.wordmark}>
-              <Text style={styles.wordmarkIndigo}>cuentas</Text>
-              {"\n"}
-              <Text style={styles.wordmarkGold}>claras</Text>
-            </Text>
+            <Image
+              source={require("../../assets/images/logo-cuentas-claras.png")}
+              style={styles.logo}
+              resizeMode="contain"
+            />
           </View>
 
-          <Text style={styles.title}>Prueba técnica: Firebase</Text>
+          <Text style={styles.title}>Bienvenido</Text>
           <Text style={styles.subtitle}>
             Crea tu cuenta para comenzar a usar Cuentas Claras
           </Text>
 
-          {/* --- Autenticación --- */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Registro de usuario</Text>
 
@@ -141,14 +98,6 @@ export default function HomeScreen() {
               <Text style={styles.primaryButtonText}>Registrarme</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.demoButton}
-              onPress={() => router.push("/dashboard")}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.demoButtonText}>Ir a Dashboard (Demo)</Text>
-            </TouchableOpacity>
-
             {authMessage ? (
               <View
                 style={[
@@ -159,53 +108,10 @@ export default function HomeScreen() {
                 <Text
                   style={[
                     styles.alertText,
-                    isAuthError
-                      ? styles.alertTextError
-                      : styles.alertTextSuccess,
+                    isAuthError ? styles.alertTextError : styles.alertTextSuccess,
                   ]}
                 >
                   {authMessage}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-
-          {/* --- Firestore --- */}
-          <View style={styles.card}>
-            <View style={styles.cardHeaderRow}>
-              <Text style={styles.cardTitle}>Firestore en tiempo real</Text>
-              <View style={styles.counterPill}>
-                <Text style={styles.counterPillText}>{itemCount}</Text>
-              </View>
-            </View>
-            <Text style={styles.counterLabel}>
-              Documentos en &quot;testItems&quot;
-            </Text>
-
-            <TouchableOpacity
-              style={styles.secondaryButton}
-              onPress={handleAddItem}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.secondaryButtonText}>Agregar documento</Text>
-            </TouchableOpacity>
-
-            {firestoreMessage ? (
-              <View
-                style={[
-                  styles.alert,
-                  isFirestoreError ? styles.alertError : styles.alertSuccess,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.alertText,
-                    isFirestoreError
-                      ? styles.alertTextError
-                      : styles.alertTextSuccess,
-                  ]}
-                >
-                  {firestoreMessage}
                 </Text>
               </View>
             ) : null}
@@ -233,33 +139,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 16,
   },
-  logoBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.brand,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 8,
-  },
-  logoCheck: {
-    color: colors.accent,
-    fontSize: 22,
-    fontWeight: "700",
-    fontFamily: fonts.displayBold,
-  },
-  wordmark: {
-    textAlign: "center",
-    fontSize: 22,
-    fontWeight: "700",
-    lineHeight: 24,
-    fontFamily: fonts.displayBold,
-  },
-  wordmarkIndigo: {
-    color: colors.brand,
-  },
-  wordmarkGold: {
-    color: colors.accent,
+  logo: {
+    width: 180,
+    height: 80,
   },
   title: {
     fontSize: 20,
@@ -287,11 +169,6 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
-  },
-  cardHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
   },
   cardTitle: {
     fontSize: 16,
@@ -333,52 +210,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     fontFamily: fonts.bodySemiBold,
-  },
-  demoButton: {
-    backgroundColor: colors.brandTint,
-    borderRadius: 8,
-    paddingVertical: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 8,
-  },
-  demoButtonText: {
-    color: colors.brand,
-    fontSize: 13,
-    fontWeight: "600",
-    fontFamily: fonts.bodySemiBold,
-  },
-  secondaryButton: {
-    borderWidth: 1,
-    borderColor: colors.brand,
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  secondaryButtonText: {
-    color: colors.brand,
-    fontSize: 15,
-    fontWeight: "600",
-    fontFamily: fonts.bodySemiBold,
-  },
-  counterPill: {
-    backgroundColor: colors.brandTint,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  counterPillText: {
-    color: colors.brand,
-    fontSize: 13,
-    fontWeight: "700",
-    fontFamily: fonts.displayBold,
-  },
-  counterLabel: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginBottom: 16,
-    fontFamily: fonts.bodyRegular,
   },
   alert: {
     borderRadius: 8,
