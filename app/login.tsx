@@ -23,7 +23,7 @@ import { auth } from "@/firebaseConfig";
 import { crearUsuarioSiNoExiste } from "@/services/usuarios";
 import { getAuthErrorMessage } from "@/utils/authErrors";
 
-const loginSchema = z.object({
+export const loginSchema = z.object({
   email: z
     .string()
     .trim()
@@ -35,8 +35,7 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 // Pantalla de Login por email (RF01 Bloque 3) — llegan acá desde
-// "Continuar con E-mail" de la Bienvenida. "¿Olvidaste tu contraseña?"
-// queda sin acción todavía (Bloque 4, no construido).
+// "Continuar con E-mail" de la Bienvenida.
 export default function LoginScreen() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -149,9 +148,15 @@ export default function LoginScreen() {
             />
           </View>
 
-          <Text style={styles.forgotPasswordLink}>
-            ¿Olvidaste tu contraseña?
-          </Text>
+          <TouchableOpacity
+            onPress={() => router.push("/recuperar-contrasena")}
+            activeOpacity={0.7}
+            style={styles.forgotPasswordButton}
+          >
+            <Text style={styles.forgotPasswordLink}>
+              ¿Olvidaste tu contraseña?
+            </Text>
+          </TouchableOpacity>
 
           {firebaseError ? (
             <Text style={[styles.errorText, styles.firebaseError]}>
@@ -246,12 +251,14 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 8,
   },
-  forgotPasswordLink: {
+  forgotPasswordButton: {
     alignSelf: "flex-end",
+    marginBottom: 8,
+  },
+  forgotPasswordLink: {
     fontSize: 13,
     fontWeight: "600",
     color: colors.brand,
-    marginBottom: 8,
     fontFamily: fonts.bodySemiBold,
   },
   submitButton: {

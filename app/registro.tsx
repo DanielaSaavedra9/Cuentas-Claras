@@ -33,7 +33,7 @@ const DIAS = Array.from({ length: 31 }, (_, i) => String(i + 1));
 const anioActual = new Date().getFullYear();
 const ANIOS = Array.from({ length: 100 }, (_, i) => String(anioActual - i));
 
-const registroSchema = z
+export const registroSchema = z
   .object({
     nombre: z.string().trim().min(1, "Ingresa tu nombre"),
     apellido: z.string().trim().min(1, "Ingresa tu apellido"),
