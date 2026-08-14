@@ -1,0 +1,8 @@
+{
+  "firestore": [
+    {
+      "database": "cuentas-claras-db",
+      "rules": "firestore.rules"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+PASS utils/__tests__/authErrors.test.ts
+PASS services/__tests__/registro.integration.test.ts
+PASS services/__tests__/usuarios.test.ts
+PASS app/__tests__/recuperar-contrasena.schema.test.ts
+PASS app/__tests__/login.schema.test.ts
+PASS app/__tests__/registro.schema.test.ts
+---------------------------|---------|----------|---------|---------|-------------------
+File                       | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+---------------------------|---------|----------|---------|---------|-------------------
+All files                  |   33.33 |    23.07 |   18.18 |    31.2 |                   
+ app                       |    24.5 |    15.47 |    9.67 |   23.23 |                   
+  login.tsx                |    7.69 |        0 |       0 |    7.69 | 40-184            
+  recuperar-contrasena.tsx |    9.52 |        0 |       0 |    9.52 | 38-107            
+  registro.tsx             |   38.18 |    27.08 |      15 |   36.53 | 88-352            
+ components                |    8.33 |        0 |       0 |    9.09 |                   
+  select-field.tsx         |    8.33 |        0 |       0 |    9.09 | 33-61             
+ constants                 |     100 |      100 |     100 |     100 |                   
+  brand-colors.ts          |     100 |      100 |     100 |     100 |                   
+  brand-fonts.ts           |     100 |      100 |     100 |     100 |                   
+ services                  |     100 |     87.5 |     100 |     100 |                   
+  usuarios.ts              |     100 |     87.5 |     100 |     100 | 39                
+ utils                     |     100 |      100 |     100 |     100 |                   
+  authErrors.ts            |     100 |      100 |     100 |     100 |                   
+---------------------------|---------|----------|---------|---------|-------------------
+
+Test Suites: 6 passed, 6 total
+Tests:       29 passed, 29 total
+Snapshots:   0 total
+Time:        5.007 s
+Ran all test suites.
