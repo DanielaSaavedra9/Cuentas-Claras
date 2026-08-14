@@ -12,5 +12,9 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+// Sin persistencia propia: la sesión no sobrevive a cerrar la app por
+// completo (decisión explícita, ver PROJECT_CONTEXT.md — se retiró
+// initializeAuth + getReactNativePersistence por problemas de resolución
+// de Metro con @firebase/auth).
 export const auth = getAuth(app);
 export const db = getFirestore(app, "cuentas-claras-db");
