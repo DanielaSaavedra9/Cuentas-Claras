@@ -6,13 +6,23 @@ export type Balance = {
   gastos: number;
 };
 
+// Un gasto compartido solo cuenta la porción del usuario (monto /
+// numeroPersonas) — tanto en el balance como en cualquier lista que
+// muestre el monto de un movimiento (Home, "Ver todos").
+export function montoEfectivo(m: Movimiento): number {
+  if (m.tipo === "gasto" && m.compartido && m.numeroPersonas) {
+    return m.monto / m.numeroPersonas;
+  }
+  return m.monto;
+}
+
 export function calcularBalance(movimientos: Movimiento[]): Balance {
   const balance = movimientos.reduce(
     (acc, m) => {
       if (m.tipo === "ingreso") {
-        acc.ingresos += m.monto;
+        acc.ingresos += montoEfectivo(m);
       } else {
-        acc.gastos += m.monto;
+        acc.gastos += montoEfectivo(m);
       }
       return acc;
     },

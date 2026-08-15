@@ -15,6 +15,7 @@ import { brandColors as colors } from "@/constants/brand-colors";
 import { brandFonts as fonts } from "@/constants/brand-fonts";
 import { auth } from "@/firebaseConfig";
 import { listarMovimientos, Movimiento } from "@/services/movimientos";
+import { montoEfectivo } from "@/utils/balance";
 
 // Pantalla temporal solo para poder llegar a un movimiento existente y
 // probar editar/eliminar (Bloque 2 de RF02) mientras no existe la lista
@@ -84,7 +85,7 @@ export default function MovimientosListaScreen() {
                   { color: item.tipo === "ingreso" ? colors.success : colors.error },
                 ]}
               >
-                {item.tipo === "ingreso" ? "+" : "-"}${item.monto}
+                {item.tipo === "ingreso" ? "+" : "-"}${montoEfectivo(item)}
               </Text>
             </TouchableOpacity>
           )}

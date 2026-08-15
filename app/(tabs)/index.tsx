@@ -20,6 +20,7 @@ import {
   mesAnterior,
   mesSiguiente,
   MesAnio,
+  montoEfectivo,
   puedeNavegarAMes,
   ultimosNMeses,
 } from "@/utils/balance";
@@ -241,7 +242,7 @@ export default function HomeScreen() {
               ]}
             >
               {item.tipo === "ingreso" ? "+" : "-"}
-              {formatCLP(item.monto)}
+              {formatCLP(montoEfectivo(item))}
             </Text>
           </TouchableOpacity>
         )}
