@@ -129,10 +129,19 @@ export default function HomeScreen() {
           <>
             <View style={styles.topBar}>
               <Text style={styles.greeting}>Hola{nombre ? `, ${nombre}` : ""}</Text>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {nombre ? nombre.charAt(0).toUpperCase() : "?"}
-                </Text>
+              <View style={styles.topBarRight}>
+                <TouchableOpacity
+                  onPress={() => router.push("/simulador-credito")}
+                  activeOpacity={0.7}
+                  hitSlop={8}
+                >
+                  <Ionicons name="calculator-outline" size={22} color={colors.brand} />
+                </TouchableOpacity>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>
+                    {nombre ? nombre.charAt(0).toUpperCase() : "?"}
+                  </Text>
+                </View>
               </View>
             </View>
 
@@ -378,6 +387,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 12,
+  },
+  topBarRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
   },
   greeting: {
     fontSize: 16,
