@@ -1,0 +1,24 @@
+PASS services/__tests__/usuarios.test.ts
+PASS services/__tests__/movimientos.integration.test.ts
+PASS services/__tests__/registro.integration.test.ts
+PASS services/__tests__/movimientos.test.ts
+PASS utils/__tests__/authErrors.test.ts
+PASS components/__tests__/movimiento-form.schema.test.ts
+PASS app/__tests__/recuperar-contrasena.schema.test.ts (8.976 s)
+PASS app/__tests__/registro.schema.test.ts (8.982 s)
+PASS app/__tests__/login.schema.test.ts (8.948 s)
+----------------------|---------|----------|---------|---------|-------------------
+File                  | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+----------------------|---------|----------|---------|---------|-------------------
+All files             |   56.07 |    47.36 |      25 |   55.55 |                   
+ components           |   47.43 |     37.8 |   14.28 |   45.83 |                   
+  movimiento-form.tsx |   47.43 |     37.8 |   14.28 |   45.83 | 118-473           
+ services             |   79.31 |    71.87 |   66.66 |   81.48 |                   
+  movimientos.ts      |   79.31 |    71.87 |   66.66 |   81.48 | 85-101            
+----------------------|---------|----------|---------|---------|-------------------
+
+Test Suites: 9 passed, 9 total
+Tests:       56 passed, 56 total
+Snapshots:   0 total
+Time:        10.023 s
+Ran all test suites.

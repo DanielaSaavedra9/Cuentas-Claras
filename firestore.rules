@@ -8,6 +8,10 @@ service cloud.firestore {
       allow update: if request.auth != null && request.auth.uid == userId
         && !request.resource.data.diff(resource.data).affectedKeys()
              .hasAny(['fechaRegistro', 'consentimientoAceptado', 'fechaConsentimiento']);
+
+      match /movimientos/{movId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
     }
   }
 }
