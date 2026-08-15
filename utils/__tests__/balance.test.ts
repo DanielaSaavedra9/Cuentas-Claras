@@ -4,6 +4,7 @@ import {
   filtrarPorMes,
   mesAnterior,
   mesSiguiente,
+  montoEfectivo,
   puedeNavegarAMes,
 } from "@/utils/balance";
 
@@ -59,6 +60,55 @@ describe("calcularBalance", () => {
       ingresos: 900000,
       gastos: 51500,
     });
+  });
+
+  it("resta solo la porción proporcional de un gasto compartido", () => {
+    const movimientos = [
+      mov({ tipo: "gasto", monto: 10000, compartido: true, numeroPersonas: 2 }),
+    ];
+    expect(calcularBalance(movimientos)).toEqual({
+      neto: -5000,
+      ingresos: 0,
+      gastos: 5000,
+    });
+  });
+
+  it("mezcla gastos compartidos y no compartidos en el mismo mes", () => {
+    const movimientos = [
+      mov({ id: "a", tipo: "gasto", monto: 10000, compartido: true, numeroPersonas: 2 }),
+      mov({ id: "b", tipo: "gasto", monto: 20000 }),
+      mov({ tipo: "ingreso", monto: 100000 }),
+    ];
+    expect(calcularBalance(movimientos)).toEqual({
+      neto: 75000,
+      ingresos: 100000,
+      gastos: 25000,
+    });
+  });
+});
+
+describe("montoEfectivo", () => {
+  it("devuelve el monto total si el gasto no es compartido", () => {
+    expect(montoEfectivo(mov({ monto: 10000 }))).toBe(10000);
+  });
+
+  it("divide el monto entre numeroPersonas si es un gasto compartido", () => {
+    const resultado = montoEfectivo(
+      mov({ monto: 10000, compartido: true, numeroPersonas: 3 }),
+    );
+    expect(resultado).toBeCloseTo(3333.33, 2);
+  });
+
+  it("ignora compartido/numeroPersonas en un ingreso", () => {
+    expect(
+      montoEfectivo(
+        mov({ tipo: "ingreso", monto: 10000, compartido: true, numeroPersonas: 2 }),
+      ),
+    ).toBe(10000);
+  });
+
+  it("devuelve el monto total si compartido es true pero falta numeroPersonas", () => {
+    expect(montoEfectivo(mov({ monto: 10000, compartido: true }))).toBe(10000);
   });
 });
 
