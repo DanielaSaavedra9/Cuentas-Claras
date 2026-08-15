@@ -12,6 +12,19 @@ service cloud.firestore {
       match /movimientos/{movId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
+
+      match /escenariosGuardados/{escenarioId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // RF07 Bloque 0: cualquier usuario autenticado puede leer la tasa de
+    // referencia; la escritura la hace únicamente scripts/actualizar-tasa-consumo.mjs
+    // vía Firebase Admin SDK, que no pasa por estas reglas (son solo para
+    // el SDK de cliente) — allow write: if false lo deja explícito.
+    match /tasasReferencia/{docId} {
+      allow read: if request.auth != null;
+      allow write: if false;
     }
   }
 }
