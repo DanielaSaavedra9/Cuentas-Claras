@@ -16,6 +16,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "../firebaseConfig";
+import { calcularCuotaSugerida, calcularDiferenciaSugerido } from "../utils/previsibles";
 
 export type TipoMovimiento = "ingreso" | "gasto";
 
@@ -26,6 +27,13 @@ export type CategoriaMovimiento =
   | "transporte"
   | "salud"
   | "otros";
+
+export type AbonoMensual = {
+  mes: number;
+  anio: number;
+  montoAbonado: number;
+  diferenciaSugerido: number;
+};
 
 export type DatosMovimientoNuevo = {
   tipo: TipoMovimiento;
@@ -42,6 +50,9 @@ export type DatosMovimientoNuevo = {
 export type Movimiento = DatosMovimientoNuevo & {
   id: string;
   creadoEnMillis?: number;
+  previsibleMontoAbonado?: number;
+  previsibleCuotaSugerida?: number;
+  previsibleAbonosMensuales?: AbonoMensual[];
 };
 
 function refMovimientos(uid: string) {
@@ -65,6 +76,9 @@ function mapearMovimiento(snapshot: QueryDocumentSnapshot): Movimiento {
     numeroPersonas: data.numeroPersonas,
     esPrevisible: data.esPrevisible,
     previsibleFechaLimite: data.previsible?.fechaLimite,
+    previsibleMontoAbonado: data.previsible?.montoAbonado,
+    previsibleCuotaSugerida: data.previsible?.cuotaSugerida,
+    previsibleAbonosMensuales: data.previsible?.abonosMensuales,
     creadoEnMillis: data.creadoEn?.toMillis?.(),
   };
 }
@@ -83,10 +97,11 @@ function ordenarPorFechaYCreacion(movimientos: Movimiento[]): Movimiento[] {
   });
 }
 
-// Los toggles "compartido"/"esPrevisible" solo aplican a gastos. El campo
-// mínimo que guardan (numeroPersonas / previsible.fechaLimite) es lo que
-// muestra el mockup de RF02 — cuotaSugerida, abonosMensuales y la división
-// real del monto en el balance son lógica de RF04/RF05, todavía pendientes.
+// El toggle "compartido" solo aplica a gastos, con el campo mínimo
+// (numeroPersonas) definido en RF04. "esPrevisible" (RF05) inicializa el
+// objeto previsible completo: fechaLimite, montoAbonado: 0, cuotaSugerida
+// calculada sobre el monto total (saldo pendiente inicial) y meses
+// restantes hasta la fecha límite, y abonosMensuales vacío.
 export async function crearMovimiento(
   uid: string,
   datos: DatosMovimientoNuevo,
@@ -109,7 +124,16 @@ export async function crearMovimiento(
     payload.numeroPersonas = datos.numeroPersonas;
   }
   if (esPrevisible && datos.previsibleFechaLimite) {
-    payload.previsible = { fechaLimite: datos.previsibleFechaLimite };
+    payload.previsible = {
+      fechaLimite: datos.previsibleFechaLimite,
+      montoAbonado: 0,
+      cuotaSugerida: calcularCuotaSugerida(
+        datos.monto,
+        datos.previsibleFechaLimite,
+        new Date(),
+      ),
+      abonosMensuales: [],
+    };
   }
   if (datos.tipo === "ingreso") {
     payload.generadoAutomaticamente = false;
@@ -166,6 +190,12 @@ export function escucharMovimientosDelMes(
 // campos opcionales cuando el toggle correspondiente queda desactivado —
 // si no, un numeroPersonas o previsible.fechaLimite viejo quedaría
 // "pegado" en el documento después de editar.
+//
+// Si el gasto ya era previsible y tenía abonos, una edición genérica (ej.
+// corregir la descripción) NO debe borrar montoAbonado/abonosMensuales —
+// se lee el documento actual primero y se preservan, recalculando solo
+// cuotaSugerida sobre el saldo pendiente real. registrarAbono() es la
+// única función que agrega abonos nuevos.
 export async function actualizarMovimiento(
   uid: string,
   id: string,
@@ -173,6 +203,23 @@ export async function actualizarMovimiento(
 ): Promise<void> {
   const compartido = datos.tipo === "gasto" ? !!datos.compartido : false;
   const esPrevisible = datos.tipo === "gasto" ? !!datos.esPrevisible : false;
+
+  let previsible: unknown = deleteField();
+  if (esPrevisible && datos.previsibleFechaLimite) {
+    const actual = await obtenerMovimiento(uid, id);
+    const montoAbonado = actual?.previsibleMontoAbonado ?? 0;
+    const abonosMensuales = actual?.previsibleAbonosMensuales ?? [];
+    previsible = {
+      fechaLimite: datos.previsibleFechaLimite,
+      montoAbonado,
+      cuotaSugerida: calcularCuotaSugerida(
+        datos.monto - montoAbonado,
+        datos.previsibleFechaLimite,
+        new Date(),
+      ),
+      abonosMensuales,
+    };
+  }
 
   const payload: Record<string, unknown> = {
     tipo: datos.tipo,
@@ -185,15 +232,69 @@ export async function actualizarMovimiento(
     creadoEn: serverTimestamp(),
     numeroPersonas:
       compartido && datos.numeroPersonas ? datos.numeroPersonas : deleteField(),
-    previsible:
-      esPrevisible && datos.previsibleFechaLimite
-        ? { fechaLimite: datos.previsibleFechaLimite }
-        : deleteField(),
+    previsible,
     generadoAutomaticamente:
       datos.tipo === "ingreso" ? false : deleteField(),
   };
 
   await updateDoc(refMovimiento(uid, id), payload);
+}
+
+export type DatosAbono = {
+  mes: number;
+  anio: number;
+  montoAbonado: number;
+};
+
+// Bloque 3 de RF05: agrega un abono al historial, actualiza el
+// montoAbonado total y recalcula cuotaSugerida sobre el nuevo saldo
+// pendiente. diferenciaSugerido compara lo abonado contra la cuota
+// vigente ANTES de este abono (la que el usuario vio en pantalla al
+// decidir cuánto abonar).
+export async function registrarAbono(
+  uid: string,
+  id: string,
+  datos: DatosAbono,
+): Promise<void> {
+  const movimiento = await obtenerMovimiento(uid, id);
+  if (!movimiento?.esPrevisible || !movimiento.previsibleFechaLimite) {
+    throw new Error("El movimiento no es un gasto previsible");
+  }
+
+  const montoAbonadoAntes = movimiento.previsibleMontoAbonado ?? 0;
+  const abonosAntes = movimiento.previsibleAbonosMensuales ?? [];
+  const yaAbonoEsePeriodo = abonosAntes.some(
+    (a) => a.mes === datos.mes && a.anio === datos.anio,
+  );
+  if (yaAbonoEsePeriodo) {
+    throw new Error("Ya registraste un abono para este mes");
+  }
+  const cuotaVigente = calcularCuotaSugerida(
+    movimiento.monto - montoAbonadoAntes,
+    movimiento.previsibleFechaLimite,
+    new Date(),
+  );
+
+  const montoAbonadoDespues = montoAbonadoAntes + datos.montoAbonado;
+  const nuevoAbono: AbonoMensual = {
+    mes: datos.mes,
+    anio: datos.anio,
+    montoAbonado: datos.montoAbonado,
+    diferenciaSugerido: calcularDiferenciaSugerido(datos.montoAbonado, cuotaVigente),
+  };
+
+  await updateDoc(refMovimiento(uid, id), {
+    previsible: {
+      fechaLimite: movimiento.previsibleFechaLimite,
+      montoAbonado: montoAbonadoDespues,
+      cuotaSugerida: calcularCuotaSugerida(
+        movimiento.monto - montoAbonadoDespues,
+        movimiento.previsibleFechaLimite,
+        new Date(),
+      ),
+      abonosMensuales: [...abonosAntes, nuevoAbono],
+    },
+  });
 }
 
 export async function eliminarMovimiento(

@@ -90,16 +90,43 @@ describe("movimientoSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("acepta gasto previsible con fecha límite válida", () => {
+  it("acepta gasto previsible con fecha límite futura válida", () => {
+    const enUnMes = new Date();
+    enUnMes.setMonth(enUnMes.getMonth() + 1);
+    const result = movimientoSchema.safeParse(
+      baseData({
+        esPrevisible: true,
+        diaLimite: String(enUnMes.getDate()),
+        mesLimite: String(enUnMes.getMonth() + 1),
+        anioLimite: String(enUnMes.getFullYear()),
+      }),
+    );
+    expect(result.success).toBe(true);
+  });
+
+  it("rechaza gasto previsible con fecha límite de hoy", () => {
+    const hoy = new Date();
+    const result = movimientoSchema.safeParse(
+      baseData({
+        esPrevisible: true,
+        diaLimite: String(hoy.getDate()),
+        mesLimite: String(hoy.getMonth() + 1),
+        anioLimite: String(hoy.getFullYear()),
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("rechaza gasto previsible con fecha límite pasada", () => {
     const result = movimientoSchema.safeParse(
       baseData({
         esPrevisible: true,
         diaLimite: "1",
-        mesLimite: "12",
-        anioLimite: "2026",
+        mesLimite: "1",
+        anioLimite: "2020",
       }),
     );
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
   });
 
   it("ignora compartido/esPrevisible cuando tipo es ingreso", () => {

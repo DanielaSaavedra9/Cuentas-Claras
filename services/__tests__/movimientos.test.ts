@@ -90,7 +90,7 @@ describe("crearMovimiento", () => {
     expect(payload.numeroPersonas).toBe(4);
   });
 
-  it("agrega previsible.fechaLimite cuando esPrevisible es true", async () => {
+  it("inicializa el objeto previsible completo cuando esPrevisible es true", async () => {
     mockAddDoc.mockResolvedValue({ id: "mov-4" });
 
     await crearMovimiento("uid-123", {
@@ -105,7 +105,12 @@ describe("crearMovimiento", () => {
 
     const [, payload] = mockAddDoc.mock.calls[0];
     expect(payload.esPrevisible).toBe(true);
-    expect(payload.previsible).toEqual({ fechaLimite: "2027-03-01" });
+    expect(payload.previsible).toMatchObject({
+      fechaLimite: "2027-03-01",
+      montoAbonado: 0,
+      abonosMensuales: [],
+    });
+    expect(payload.previsible.cuotaSugerida).toBeGreaterThan(0);
   });
 
   it("no agrega compartido/esPrevisible reales si el tipo es ingreso", async () => {
