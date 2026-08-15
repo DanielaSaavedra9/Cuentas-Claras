@@ -42,6 +42,15 @@ export async function crearUsuarioSiNoExiste(
   });
 }
 
+export async function obtenerUsuario(
+  uid: string,
+): Promise<{ nombre: string; apellido: string } | null> {
+  const snapshot = await getDoc(refUsuario(uid));
+  if (!snapshot.exists()) return null;
+  const data = snapshot.data();
+  return { nombre: data.nombre, apellido: data.apellido };
+}
+
 export async function necesitaConsentimiento(uid: string): Promise<boolean> {
   const snapshot = await getDoc(refUsuario(uid));
   if (!snapshot.exists()) return true;

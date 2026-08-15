@@ -6,6 +6,7 @@ jest.mock("firebase/firestore", () => ({
   updateDoc: jest.fn(),
   deleteDoc: jest.fn(),
   deleteField: jest.fn(() => "DELETE_FIELD"),
+  serverTimestamp: jest.fn(() => "SERVER_TIMESTAMP"),
 }));
 
 jest.mock("../../firebaseConfig", () => ({ db: {} }));
@@ -52,6 +53,7 @@ describe("crearMovimiento", () => {
       fecha: "2026-08-14",
       compartido: false,
       esPrevisible: false,
+      creadoEn: "SERVER_TIMESTAMP",
     });
   });
 

@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Controller, UseFormReturn } from "react-hook-form";
+import { Controller, useWatch, UseFormReturn } from "react-hook-form";
 import {
   Pressable,
   StyleSheet,
@@ -166,15 +166,19 @@ export function MovimientoFormFields({
 }) {
   const {
     control,
-    watch,
     setValue,
     formState: { errors },
   } = form;
 
-  const tipo = watch("tipo");
-  const compartido = watch("compartido");
-  const esPrevisible = watch("esPrevisible");
-  const numeroPersonas = watch("numeroPersonas");
+  // `watch()` sólo dispara un re-render del componente donde se llamó
+  // useForm() — acá `control` llega por props desde otro componente, así
+  // que hay que usar useWatch() para que este componente se re-renderice
+  // cuando cambien estos campos (si no, los toggles cambian el valor por
+  // dentro pero la UI se queda pegada en el estado anterior).
+  const tipo = useWatch({ control, name: "tipo" });
+  const compartido = useWatch({ control, name: "compartido" });
+  const esPrevisible = useWatch({ control, name: "esPrevisible" });
+  const numeroPersonas = useWatch({ control, name: "numeroPersonas" });
   const montoColor = tipo === "ingreso" ? colors.success : colors.error;
 
   return (

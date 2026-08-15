@@ -37,6 +37,7 @@ jest.mock("firebase/firestore", () => {
       store.delete(ref.__id);
     }),
     deleteField: jest.fn(() => DELETE_FIELD),
+    serverTimestamp: jest.fn(() => "SERVER_TIMESTAMP"),
   };
 });
 
