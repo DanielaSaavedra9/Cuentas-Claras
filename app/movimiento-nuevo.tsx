@@ -59,7 +59,7 @@ export default function MovimientoNuevoScreen() {
           ? `${data.anioLimite}-${pad2(data.mesLimite)}-${pad2(data.diaLimite)}`
           : undefined;
 
-      const id = await crearMovimiento(uid, {
+      await crearMovimiento(uid, {
         tipo: data.tipo,
         monto: Number(data.monto),
         descripcion: data.descripcion.trim(),
@@ -73,10 +73,7 @@ export default function MovimientoNuevoScreen() {
         esPrevisible: data.tipo === "gasto" ? data.esPrevisible : undefined,
         previsibleFechaLimite,
       });
-      // Todavía no existe la lista de movimientos (RF03) desde donde
-      // llegar al detalle — mientras tanto, navegamos directo al que se
-      // acaba de crear para poder probar editar/eliminar (Bloque 2).
-      router.replace(`/movimiento-detalle?id=${id}`);
+      router.replace("/(tabs)");
     } catch {
       setFirebaseError("No se pudo guardar el movimiento. Intenta de nuevo.");
     } finally {

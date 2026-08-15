@@ -6,7 +6,13 @@ import {
   doc,
   getDoc,
   getDocs,
+  onSnapshot,
+  orderBy,
+  query,
+  QueryDocumentSnapshot,
+  serverTimestamp,
   updateDoc,
+  where,
 } from "firebase/firestore";
 
 import { db } from "../firebaseConfig";
@@ -33,7 +39,10 @@ export type DatosMovimientoNuevo = {
   previsibleFechaLimite?: string;
 };
 
-export type Movimiento = DatosMovimientoNuevo & { id: string };
+export type Movimiento = DatosMovimientoNuevo & {
+  id: string;
+  creadoEnMillis?: number;
+};
 
 function refMovimientos(uid: string) {
   return collection(db, "Usuarios", uid, "movimientos");
@@ -41,6 +50,37 @@ function refMovimientos(uid: string) {
 
 function refMovimiento(uid: string, id: string) {
   return doc(db, "Usuarios", uid, "movimientos", id);
+}
+
+function mapearMovimiento(snapshot: QueryDocumentSnapshot): Movimiento {
+  const data = snapshot.data();
+  return {
+    id: snapshot.id,
+    tipo: data.tipo,
+    monto: data.monto,
+    descripcion: data.descripcion,
+    categoria: data.categoria,
+    fecha: data.fecha,
+    compartido: data.compartido,
+    numeroPersonas: data.numeroPersonas,
+    esPrevisible: data.esPrevisible,
+    previsibleFechaLimite: data.previsible?.fechaLimite,
+    creadoEnMillis: data.creadoEn?.toMillis?.(),
+  };
+}
+
+function pad2(value: number) {
+  return String(value).padStart(2, "0");
+}
+
+// `fecha` solo guarda el día (YYYY-MM-DD), así que dos movimientos del
+// mismo día quedan empatados ahí — creadoEnMillis desempata para que el
+// más reciente aparezca primero.
+function ordenarPorFechaYCreacion(movimientos: Movimiento[]): Movimiento[] {
+  return [...movimientos].sort((a, b) => {
+    if (a.fecha !== b.fecha) return a.fecha < b.fecha ? 1 : -1;
+    return (b.creadoEnMillis ?? 0) - (a.creadoEnMillis ?? 0);
+  });
 }
 
 // Los toggles "compartido"/"esPrevisible" solo aplican a gastos. El campo
@@ -62,6 +102,7 @@ export async function crearMovimiento(
     fecha: datos.fecha,
     compartido,
     esPrevisible,
+    creadoEn: serverTimestamp(),
   };
 
   if (compartido && datos.numeroPersonas) {
@@ -83,22 +124,7 @@ export async function crearMovimiento(
 // depender de un índice compuesto en Firestore.
 export async function listarMovimientos(uid: string): Promise<Movimiento[]> {
   const snapshot = await getDocs(refMovimientos(uid));
-  const movimientos = snapshot.docs.map((d) => {
-    const data = d.data();
-    return {
-      id: d.id,
-      tipo: data.tipo,
-      monto: data.monto,
-      descripcion: data.descripcion,
-      categoria: data.categoria,
-      fecha: data.fecha,
-      compartido: data.compartido,
-      numeroPersonas: data.numeroPersonas,
-      esPrevisible: data.esPrevisible,
-      previsibleFechaLimite: data.previsible?.fechaLimite,
-    } as Movimiento;
-  });
-  return movimientos.sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+  return ordenarPorFechaYCreacion(snapshot.docs.map(mapearMovimiento));
 }
 
 export async function obtenerMovimiento(
@@ -107,20 +133,33 @@ export async function obtenerMovimiento(
 ): Promise<Movimiento | null> {
   const snapshot = await getDoc(refMovimiento(uid, id));
   if (!snapshot.exists()) return null;
+  return mapearMovimiento(snapshot as QueryDocumentSnapshot);
+}
 
-  const data = snapshot.data();
-  return {
-    id: snapshot.id,
-    tipo: data.tipo,
-    monto: data.monto,
-    descripcion: data.descripcion,
-    categoria: data.categoria,
-    fecha: data.fecha,
-    compartido: data.compartido,
-    numeroPersonas: data.numeroPersonas,
-    esPrevisible: data.esPrevisible,
-    previsibleFechaLimite: data.previsible?.fechaLimite,
-  };
+// Bloque 1 de RF03: listener en tiempo real acotado al mes/año pedidos,
+// usando rango sobre "fecha" (formato YYYY-MM-DD) + orderBy del mismo
+// campo, que no requiere índice compuesto en Firestore.
+export function escucharMovimientosDelMes(
+  uid: string,
+  anio: number,
+  mes: number,
+  onChange: (movimientos: Movimiento[]) => void,
+): () => void {
+  const inicio = `${anio}-${pad2(mes)}-01`;
+  const anioFin = mes === 12 ? anio + 1 : anio;
+  const mesFin = mes === 12 ? 1 : mes + 1;
+  const fin = `${anioFin}-${pad2(mesFin)}-01`;
+
+  const q = query(
+    refMovimientos(uid),
+    where("fecha", ">=", inicio),
+    where("fecha", "<", fin),
+    orderBy("fecha", "desc"),
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    onChange(ordenarPorFechaYCreacion(snapshot.docs.map(mapearMovimiento)));
+  });
 }
 
 // A diferencia de crearMovimiento, acá se usa deleteField() para los
@@ -143,6 +182,7 @@ export async function actualizarMovimiento(
     fecha: datos.fecha,
     compartido,
     esPrevisible,
+    creadoEn: serverTimestamp(),
     numeroPersonas:
       compartido && datos.numeroPersonas ? datos.numeroPersonas : deleteField(),
     previsible:
