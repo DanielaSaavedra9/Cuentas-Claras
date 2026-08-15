@@ -1,0 +1,27 @@
+PASS utils/__tests__/balance.test.ts
+PASS services/__tests__/movimientos.test.ts
+PASS utils/__tests__/balance.integration.test.ts
+PASS utils/__tests__/authErrors.test.ts
+PASS services/__tests__/movimientos.integration.test.ts
+PASS services/__tests__/usuarios.test.ts
+PASS services/__tests__/registro.integration.test.ts
+PASS components/__tests__/movimiento-form.schema.test.ts
+PASS app/__tests__/login.schema.test.ts (9.521 s)
+PASS app/__tests__/recuperar-contrasena.schema.test.ts (9.52 s)
+PASS app/__tests__/registro.schema.test.ts (9.525 s)
+-----------------|---------|----------|---------|---------|-------------------
+File             | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-----------------|---------|----------|---------|---------|-------------------
+All files        |   70.12 |    62.29 |   76.92 |   71.01 |                   
+ services        |   70.37 |    57.69 |   72.22 |   71.42 |                   
+  movimientos.ts |   71.05 |    54.76 |   69.23 |   72.22 | 73,81-82,148-161  
+  usuarios.ts    |   68.75 |       70 |      80 |   69.23 | 48-51             
+ utils           |   69.56 |    88.88 |    87.5 |      70 |                   
+  balance.ts     |   69.56 |    88.88 |    87.5 |      70 | 57-63             
+-----------------|---------|----------|---------|---------|-------------------
+
+Test Suites: 11 passed, 11 total
+Tests:       73 passed, 73 total
+Snapshots:   0 total
+Time:        11.031 s
+Ran all test suites.
