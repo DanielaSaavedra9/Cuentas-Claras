@@ -120,6 +120,16 @@ export const movimientoSchema = z
           path: ["diaLimite"],
           message: "Fecha inválida",
         });
+        return;
+      }
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      if (fechaLimite <= hoy) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["diaLimite"],
+          message: "La fecha debe ser posterior a hoy",
+        });
       }
     }
   });
@@ -378,7 +388,22 @@ export function MovimientoFormFields({
               control={control}
               name="esPrevisible"
               render={({ field: { value, onChange } }) => (
-                <Switch value={value} onChange={() => onChange(!value)} />
+                <Switch
+                  value={value}
+                  onChange={() => {
+                    const activando = !value;
+                    onChange(activando);
+                    // Fecha propuesta editable: un mes desde hoy, solo si
+                    // el usuario todavía no eligió ninguna fecha.
+                    if (activando && !form.getValues("diaLimite")) {
+                      const propuesta = new Date();
+                      propuesta.setMonth(propuesta.getMonth() + 1);
+                      setValue("diaLimite", String(propuesta.getDate()));
+                      setValue("mesLimite", String(propuesta.getMonth() + 1));
+                      setValue("anioLimite", String(propuesta.getFullYear()));
+                    }
+                  }}
+                />
               )}
             />
           </View>

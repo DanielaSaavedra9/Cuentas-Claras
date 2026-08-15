@@ -24,6 +24,11 @@ import {
   puedeNavegarAMes,
   ultimosNMeses,
 } from "@/utils/balance";
+import {
+  calcularCuotaSugerida,
+  estadoPrevisible,
+  formatFechaCorta,
+} from "@/utils/previsibles";
 
 const MESES = [
   "enero", "febrero", "marzo", "abril", "mayo", "junio",
@@ -103,6 +108,16 @@ export default function HomeScreen() {
     calcularBalance(filtrarPorMes(todosLosMovimientos, m.anio, m.mes)).gastos,
   );
   const maxGasto = Math.max(...gastosPorMes, 1);
+
+  const gastosPrevisiblesProximos = todosLosMovimientos
+    .filter(
+      (m) =>
+        m.esPrevisible &&
+        m.previsibleFechaLimite &&
+        (m.previsibleMontoAbonado ?? 0) < m.monto,
+    )
+    .sort((a, b) => a.previsibleFechaLimite!.localeCompare(b.previsibleFechaLimite!))
+    .slice(0, 3);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
@@ -254,6 +269,86 @@ export default function HomeScreen() {
             <Text style={styles.emptySubtitle}>
               Toca el botón + para agregar un ingreso o gasto
             </Text>
+          </View>
+        }
+        ListFooterComponent={
+          <View style={styles.previsiblesSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Gastos previsibles próximos</Text>
+            </View>
+            {gastosPrevisiblesProximos.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyTitle}>Sin gastos previsibles</Text>
+                <Text style={styles.emptySubtitle}>
+                  Marca un gasto como previsible para hacerle seguimiento acá
+                </Text>
+              </View>
+            ) : (
+              gastosPrevisiblesProximos.map((p) => {
+                const montoAbonado = p.previsibleMontoAbonado ?? 0;
+                const saldoPendiente = p.monto - montoAbonado;
+                const cuotaSugerida = calcularCuotaSugerida(
+                  saldoPendiente,
+                  p.previsibleFechaLimite!,
+                  new Date(),
+                );
+                const estado = estadoPrevisible(
+                  new Date(),
+                  p.previsibleFechaLimite!,
+                  montoAbonado,
+                  p.monto,
+                );
+                const vencido = estado === "vencido";
+                const montoSugerido = vencido ? saldoPendiente : cuotaSugerida;
+                return (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={styles.previsibleCard}
+                    activeOpacity={0.85}
+                    onPress={() =>
+                      router.push(`/gasto-previsible-detalle?id=${p.id}`)
+                    }
+                  >
+                    <View style={styles.previsibleHeaderRow}>
+                      <Text style={styles.previsibleLabel}>{p.descripcion}</Text>
+                      {estado !== "normal" ? (
+                        <View style={styles.atrasadoBadge}>
+                          <Text style={styles.atrasadoBadgeText}>
+                            {vencido ? "Vencido" : "Próximo a vencer"}
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    <Text style={styles.previsibleMeta}>
+                      Vence {formatFechaCorta(p.previsibleFechaLimite!)} · Total{" "}
+                      {formatCLP(p.monto)}
+                    </Text>
+                    <View style={styles.previsibleDivider} />
+                    <View style={styles.previsibleFooterRow}>
+                      <View>
+                        <Text style={styles.previsibleMeta}>
+                          {vencido
+                            ? "Saldo pendiente (vencido)"
+                            : "Cuota sugerida este mes"}
+                        </Text>
+                        <Text style={styles.previsibleCuota}>
+                          {formatCLP(montoSugerido)}
+                        </Text>
+                      </View>
+                      <View style={{ alignItems: "flex-end" }}>
+                        <Text style={styles.previsibleMeta}>Abonado</Text>
+                        <Text style={styles.previsibleAbonado}>
+                          {formatCLP(montoAbonado)} / {formatCLP(p.monto)}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.previsibleVerDetalle}>
+                      Ver detalle y registrar un abono →
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })
+            )}
           </View>
         }
       />
@@ -491,6 +586,78 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontFamily: fonts.bodyRegular,
     textAlign: "center",
+  },
+  previsiblesSection: {
+    marginTop: 8,
+  },
+  previsibleCard: {
+    backgroundColor: "#FFF8E8",
+    borderWidth: 1,
+    borderColor: "#FDE4A6",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 8,
+    gap: 10,
+  },
+  previsibleHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  previsibleLabel: {
+    flexShrink: 1,
+    fontSize: 15,
+    fontWeight: "600",
+    color: colors.textPrimary,
+    fontFamily: fonts.bodySemiBold,
+  },
+  atrasadoBadge: {
+    backgroundColor: "#FDECC0",
+    borderRadius: 20,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+  },
+  atrasadoBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#B5820A",
+    fontFamily: fonts.bodySemiBold,
+  },
+  previsibleMeta: {
+    fontSize: 11.5,
+    color: colors.textSecondary,
+    marginTop: 2,
+    fontFamily: fonts.bodyRegular,
+  },
+  previsibleDivider: {
+    height: 1,
+    backgroundColor: "#FDE4A6",
+  },
+  previsibleFooterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  previsibleCuota: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: colors.textPrimary,
+    fontFamily: fonts.displaySemiBold,
+    marginTop: 2,
+  },
+  previsibleAbonado: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.success,
+    fontFamily: fonts.bodySemiBold,
+    marginTop: 2,
+  },
+  previsibleVerDetalle: {
+    fontSize: 11.5,
+    fontWeight: "600",
+    color: "#B5820A",
+    fontFamily: fonts.bodySemiBold,
   },
   fab: {
     position: "absolute",

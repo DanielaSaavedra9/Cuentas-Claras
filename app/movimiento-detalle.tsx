@@ -39,9 +39,7 @@ function valoresDesdeMovimiento(m: Movimiento): MovimientoFormValues {
   const [anio, mes, dia] = m.fecha.split("-");
   const [anioLimite = "", mesLimite = "", diaLimite = ""] = (
     m.previsibleFechaLimite ?? ""
-  )
-    .split("-")
-    .reverse();
+  ).split("-");
 
   return {
     tipo: m.tipo,
