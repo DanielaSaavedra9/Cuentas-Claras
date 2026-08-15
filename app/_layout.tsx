@@ -57,6 +57,18 @@ export default function RootLayout() {
         />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
+          name="movimiento-nuevo"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="movimiento-detalle"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="movimientos-lista"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
           name="modal"
           options={{ presentation: "modal", title: "Modal" }}
         />
