@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -26,6 +26,7 @@ import {
   listarEscenariosGuardados,
 } from "@/services/escenarios";
 import { obtenerTasaTipConsumo } from "@/services/tasasReferencia";
+import { obtenerUsuario } from "@/services/usuarios";
 import {
   calcularCAE,
   calcularCTC,
@@ -369,7 +370,6 @@ function GuardadoCard({
 // segundo escenario opcional, independiente del primero. Bloque 4:
 // guardar cada escenario y ver la lista de guardados.
 export default function SimuladorCreditoScreen() {
-  const router = useRouter();
   const [monto, setMonto] = useState("1000000");
   const [plazo, setPlazo] = useState("12");
   const [tasa, setTasa] = useState("");
@@ -380,6 +380,16 @@ export default function SimuladorCreditoScreen() {
   const [tasa2, setTasa2] = useState("");
 
   const [guardados, setGuardados] = useState<EscenarioGuardado[]>([]);
+  const [nombre, setNombre] = useState("");
+  const scrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+    obtenerUsuario(uid).then((usuario) => {
+      if (usuario) setNombre(usuario.nombre);
+    });
+  }, []);
 
   useEffect(() => {
     obtenerTasaTipConsumo().then((tasaReferencia) => {
@@ -399,21 +409,24 @@ export default function SimuladorCreditoScreen() {
   }, []);
 
   // Persistente entre visitas a la pantalla: se recarga cada vez que
-  // vuelve a estar en foco, no solo al montar.
-  useFocusEffect(cargarGuardados);
+  // vuelve a estar en foco, no solo al montar. También vuelve el scroll
+  // arriba al volver desde otra sección (mismo fix que Home).
+  useFocusEffect(
+    useCallback(() => {
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+      cargarGuardados();
+    }, [cargarGuardados]),
+  );
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          activeOpacity={0.7}
-          hitSlop={8}
-        >
-          <Ionicons name="close" size={18} color={colors.textSecondary} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Simulador de crédito</Text>
-        <View style={styles.headerSpacer} />
+        <Text style={styles.title}>Simuladores</Text>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
+            {nombre ? nombre.charAt(0).toUpperCase() : "?"}
+          </Text>
+        </View>
       </View>
 
       <KeyboardAvoidingView
@@ -421,9 +434,20 @@ export default function SimuladorCreditoScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
+          <View style={styles.segmented}>
+            <View style={[styles.segmentedOption, styles.segmentedOptionActive]}>
+              <Text style={styles.segmentedTextActive}>Crédito de consumo</Text>
+            </View>
+            <View style={styles.segmentedOption}>
+              <Text style={styles.segmentedTextDisabled}>Cuenta de ahorro</Text>
+              <Text style={styles.segmentedBadge}>Próximamente</Text>
+            </View>
+          </View>
+
           <EscenarioCard
             label="Escenario 1"
             monto={monto}
@@ -488,22 +512,75 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-  },
-  headerSpacer: {
-    width: 18,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 12,
   },
   title: {
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: "600",
     color: colors.textPrimary,
     fontFamily: fonts.displaySemiBold,
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.brand,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FFFFFF",
+    fontFamily: fonts.bodySemiBold,
   },
   content: {
     paddingHorizontal: 24,
     paddingBottom: 40,
     gap: 16,
+  },
+  segmented: {
+    flexDirection: "row",
+    backgroundColor: colors.brandTint,
+    borderRadius: 10,
+    padding: 3,
+    gap: 4,
+  },
+  segmentedOption: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  segmentedOptionActive: {
+    backgroundColor: colors.card,
+    shadowColor: colors.textPrimary,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  segmentedTextActive: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.brand,
+    fontFamily: fonts.bodySemiBold,
+  },
+  segmentedTextDisabled: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.textTertiary,
+    fontFamily: fonts.bodySemiBold,
+  },
+  segmentedBadge: {
+    fontSize: 9,
+    fontWeight: "600",
+    color: colors.textTertiary,
+    fontFamily: fonts.bodySemiBold,
+    marginTop: 1,
   },
   card: {
     backgroundColor: colors.background,

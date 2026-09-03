@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -55,10 +55,19 @@ function hoyMesAnio(): MesAnio {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const listRef = useRef<FlatList<Movimiento>>(null);
   const [mesSeleccionado, setMesSeleccionado] = useState<MesAnio>(hoyMesAnio());
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [todosLosMovimientos, setTodosLosMovimientos] = useState<Movimiento[]>([]);
   const [nombre, setNombre] = useState("");
+
+  // Reportado por la usuaria: al volver a este tab desde otra sección, el
+  // scroll quedaba donde lo había dejado en vez de volver arriba.
+  useFocusEffect(
+    useCallback(() => {
+      listRef.current?.scrollToOffset({ offset: 0, animated: false });
+    }, []),
+  );
 
   useEffect(() => {
     const uid = auth.currentUser?.uid;
@@ -120,8 +129,9 @@ export default function HomeScreen() {
     .slice(0, 3);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <FlatList
+        ref={listRef}
         data={ultimosMovimientos}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
@@ -129,19 +139,10 @@ export default function HomeScreen() {
           <>
             <View style={styles.topBar}>
               <Text style={styles.greeting}>Hola{nombre ? `, ${nombre}` : ""}</Text>
-              <View style={styles.topBarRight}>
-                <TouchableOpacity
-                  onPress={() => router.push("/simulador-credito")}
-                  activeOpacity={0.7}
-                  hitSlop={8}
-                >
-                  <Ionicons name="calculator-outline" size={22} color={colors.brand} />
-                </TouchableOpacity>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {nombre ? nombre.charAt(0).toUpperCase() : "?"}
-                  </Text>
-                </View>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {nombre ? nombre.charAt(0).toUpperCase() : "?"}
+                </Text>
               </View>
             </View>
 
@@ -224,7 +225,15 @@ export default function HomeScreen() {
 
               {movimientos.length > 0 ? (
                 <TouchableOpacity
-                  onPress={() => router.push("/movimientos-lista")}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/movimientos-lista",
+                      params: {
+                        anio: String(mesSeleccionado.anio),
+                        mes: String(mesSeleccionado.mes),
+                      },
+                    })
+                  }
                   style={styles.chartLink}
                 >
                   <Text style={styles.sectionLink}>
@@ -236,7 +245,17 @@ export default function HomeScreen() {
 
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Últimos movimientos</Text>
-              <TouchableOpacity onPress={() => router.push("/movimientos-lista")}>
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({
+                    pathname: "/movimientos-lista",
+                    params: {
+                      anio: String(mesSeleccionado.anio),
+                      mes: String(mesSeleccionado.mes),
+                    },
+                  })
+                }
+              >
                 <Text style={styles.sectionLink}>Ver todos</Text>
               </TouchableOpacity>
             </View>
@@ -387,11 +406,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 12,
-  },
-  topBarRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
   },
   greeting: {
     fontSize: 16,
