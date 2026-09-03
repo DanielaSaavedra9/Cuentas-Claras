@@ -8,11 +8,7 @@ import {
     Inter_600SemiBold,
     Inter_700Bold,
 } from "@expo-google-fonts/inter";
-import {
-    DarkTheme,
-    DefaultTheme,
-    ThemeProvider,
-} from "@react-navigation/native";
+import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -20,12 +16,29 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import "react-native-reanimated";
 
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { brandColors } from "@/constants/brand-colors";
 
 SplashScreen.preventAutoHideAsync();
 
+// brandColors es una paleta fija que no depende del modo de color del
+// sistema (ver constants/brand-colors.ts) — el tema de navegación no
+// puede alternar entre Dark/DefaultTheme como en el scaffold original,
+// porque el fondo casi negro de DarkTheme se filtra detrás de las
+// esquinas redondeadas de la tab bar cuando el teléfono está en modo
+// oscuro. Se fuerza siempre un tema claro con los colores de la marca.
+const navigationTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: brandColors.background,
+    card: brandColors.card,
+    primary: brandColors.brand,
+    border: brandColors.border,
+    text: brandColors.textPrimary,
+  },
+};
+
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const [fontsLoaded] = useFonts({
     Fredoka_600SemiBold,
     Fredoka_700Bold,
@@ -46,7 +59,7 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={navigationTheme}>
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ headerShown: false }} />
@@ -65,15 +78,7 @@ export default function RootLayout() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="movimientos-lista"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
           name="gasto-previsible-detalle"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="simulador-credito"
           options={{ headerShown: false }}
         />
         <Stack.Screen
