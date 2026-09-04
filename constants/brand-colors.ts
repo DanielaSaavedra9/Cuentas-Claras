@@ -7,6 +7,7 @@ export const brandColors = {
   brandHover: "#2A1DA8",
   brandTint: "#F1EEFE",
   brandBarTint: "#DCD4FB",
+  infoBadge: "#E4DEFC", // fondo del ícono "i" de los tooltips educativos (RF06) — valor del kit
   accent: "#FDB927",
   textPrimary: "#1A1A2E",
   textSecondary: "#757575",

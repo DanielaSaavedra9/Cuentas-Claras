@@ -10,7 +10,6 @@ import { brandFonts as fonts } from "@/constants/brand-fonts";
 // accent/dorado, inactivo blanco translúcido.
 const ACTIVO = colors.accent;
 const INACTIVO = "rgba(255,255,255,0.55)";
-const DESHABILITADO = "rgba(255,255,255,0.35)";
 
 export default function TabLayout() {
   return (
@@ -67,18 +66,15 @@ export default function TabLayout() {
       {/* RF08: se llega por el segmentado dentro de "Simuladores", no por
           un tab propio — href:null lo mantiene fuera de la tab bar. */}
       <Tabs.Screen name="simulador-ahorro" options={{ href: null }} />
+      {/* RF06: glosario educativo — el tab se activó al cerrar el
+          simulador de ahorro; antes estaba deshabilitado (tabPress
+          bloqueado, label "Próximamente"). */}
       <Tabs.Screen
         name="aprender"
-        listeners={{
-          // Bloque 2: visible pero sin pantalla de destino — no navega.
-          tabPress: (e) => e.preventDefault(),
-        }}
         options={{
-          title: "Próximamente",
-          tabBarActiveTintColor: DESHABILITADO,
-          tabBarInactiveTintColor: DESHABILITADO,
-          tabBarIcon: () => (
-            <Ionicons name="book-outline" size={22} color={DESHABILITADO} />
+          title: "Aprender",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "book" : "book-outline"} size={22} color={color} />
           ),
         }}
       />

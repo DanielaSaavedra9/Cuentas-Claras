@@ -11,6 +11,7 @@ import {
 import { z } from "zod";
 
 import { SelectField } from "@/components/select-field";
+import { TooltipInfo } from "@/components/tooltip-info";
 import { brandColors as colors } from "@/constants/brand-colors";
 import { brandFonts as fonts } from "@/constants/brand-fonts";
 import { CategoriaMovimiento } from "@/services/movimientos";
@@ -383,7 +384,10 @@ export function MovimientoFormFields({
       {tipo === "gasto" ? (
         <>
           <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>Es un gasto previsible</Text>
+            <View style={styles.toggleLabelRow}>
+              <Text style={styles.toggleLabel}>Es un gasto previsible</Text>
+              <TooltipInfo terminoId="gastoPrevisible" />
+            </View>
             <Controller
               control={control}
               name="esPrevisible"
@@ -468,7 +472,10 @@ export function MovimientoFormFields({
           ) : null}
 
           <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>Gasto compartido</Text>
+            <View style={styles.toggleLabelRow}>
+              <Text style={styles.toggleLabel}>Gasto compartido</Text>
+              <TooltipInfo terminoId="gastoCompartido" />
+            </View>
             <Controller
               control={control}
               name="compartido"
@@ -644,6 +651,11 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 16,
+  },
+  toggleLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   toggleLabel: {
     fontSize: 14,
