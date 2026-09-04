@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -442,10 +442,13 @@ export default function SimuladorCreditoScreen() {
             <View style={[styles.segmentedOption, styles.segmentedOptionActive]}>
               <Text style={styles.segmentedTextActive}>Crédito de consumo</Text>
             </View>
-            <View style={styles.segmentedOption}>
-              <Text style={styles.segmentedTextDisabled}>Cuenta de ahorro</Text>
-              <Text style={styles.segmentedBadge}>Próximamente</Text>
-            </View>
+            <TouchableOpacity
+              style={styles.segmentedOption}
+              activeOpacity={0.7}
+              onPress={() => router.replace("/simulador-ahorro")}
+            >
+              <Text style={styles.segmentedTextInactive}>Cuenta de ahorro</Text>
+            </TouchableOpacity>
           </View>
 
           <EscenarioCard
@@ -569,18 +572,11 @@ const styles = StyleSheet.create({
     color: colors.brand,
     fontFamily: fonts.bodySemiBold,
   },
-  segmentedTextDisabled: {
+  segmentedTextInactive: {
     fontSize: 13,
     fontWeight: "600",
-    color: colors.textTertiary,
+    color: colors.textSecondary,
     fontFamily: fonts.bodySemiBold,
-  },
-  segmentedBadge: {
-    fontSize: 9,
-    fontWeight: "600",
-    color: colors.textTertiary,
-    fontFamily: fonts.bodySemiBold,
-    marginTop: 1,
   },
   card: {
     backgroundColor: colors.background,

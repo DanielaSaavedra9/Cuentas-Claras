@@ -64,6 +64,9 @@ export default function TabLayout() {
           ),
         }}
       />
+      {/* RF08: se llega por el segmentado dentro de "Simuladores", no por
+          un tab propio — href:null lo mantiene fuera de la tab bar. */}
+      <Tabs.Screen name="simulador-ahorro" options={{ href: null }} />
       <Tabs.Screen
         name="aprender"
         listeners={{
