@@ -1,9 +1,13 @@
-// RF07 Bloque 0 — actualiza tasasReferencia/tipConsumo con datos reales
-// de la API del Banco Central de Chile. Es un script manual (Node +
-// Firebase Admin SDK), no una Cloud Function: el proyecto está en plan
-// Spark (sin facturación) y Cloud Functions no puede hacer llamadas HTTP
-// salientes ahí. Ver .claude/PROJECT_CONTEXT.md, sección "Arquitectura
-// definida", y .claude/rf07-checklist.md Bloque 0.
+// RF07/RF08 Bloque 0 — actualiza tasasReferencia/tipConsumo y
+// tasasReferencia/cuentaAhorro con datos reales de la API del Banco
+// Central de Chile. Es un script manual (Node + Firebase Admin SDK), no
+// una Cloud Function: el proyecto está en plan Spark (sin facturación) y
+// Cloud Functions no puede hacer llamadas HTTP salientes ahí. Ver
+// .claude/PROJECT_CONTEXT.md, sección "Arquitectura definida", y los
+// checklists .claude/rf07-checklist.md / .claude/rf08-checklist.md Bloque 0.
+//
+// tasasReferencia/cuentaRemunerada NO se toca acá — es carga manual del
+// equipo, sin API: usar scripts/actualizar-tasa-remunerada.mjs.
 //
 // Uso:
 //   1. BCCH_TOKEN debe estar en el .env de la raíz del proyecto
@@ -11,7 +15,7 @@
 //      (Configuración del proyecto → Cuentas de servicio → Generar nueva
 //      clave privada) y guardarla como scripts/serviceAccountKey.json
 //      (ya cubierto por .gitignore — nunca commitear este archivo)
-//   3. node scripts/actualizar-tasa-consumo.mjs
+//   3. node scripts/actualizar-tasas-banco-central.mjs
 
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -37,8 +41,12 @@ function cargarEnv(rutaEnv) {
 cargarEnv(path.join(__dirname, "..", ".env"));
 
 const BCCH_BASE_URL = "https://si3.bcentral.cl/SieteRestWS/SieteRestWS.ashx";
+
 const SERIE_TIP_CONSUMO = "F022.CON.TIP.Z.NO.Z.D";
 const VENTANA_DIAS = 35; // ~4-5 publicaciones, la serie sale cada 8 días
+
+const SERIE_CUENTA_AHORRO = "F022.CAP.TIP.D089.NO.Z.D"; // captaciones 30-89 días, tasa en base mensual
+const VENTANA_DIAS_AHORRO = 7; // serie casi diaria (ND solo fines de semana/feriados), no necesita ventana amplia
 
 const TOKEN = process.env.BCCH_TOKEN;
 if (!TOKEN) {
@@ -48,6 +56,12 @@ if (!TOKEN) {
 
 function formatoFecha(d) {
   return d.toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+// indexDateString viene como DD-MM-YYYY — se convierte a YYYY-MM-DD.
+function fechaObsAIso(indexDateString) {
+  const [dia, mes, anio] = indexDateString.split("-");
+  return `${anio}-${mes}-${dia}`;
 }
 
 async function fetchObservacionesValidas(seriesId, diasHaciaAtras) {
@@ -80,6 +94,8 @@ async function fetchObservacionesValidas(seriesId, diasHaciaAtras) {
   return validas;
 }
 
+// TIP créditos de consumo: tasa anual nominal, muy volátil semana a
+// semana → se promedia la ventana en vez de usar el último valor puntual.
 async function fetchPromedioTIPConsumo() {
   const validas = await fetchObservacionesValidas(SERIE_TIP_CONSUMO, VENTANA_DIAS);
 
@@ -87,23 +103,47 @@ async function fetchPromedioTIPConsumo() {
   const promedio = valores.reduce((acc, v) => acc + v, 0) / valores.length;
 
   const ultima = validas[validas.length - 1];
-  const [dia, mes, anio] = ultima.indexDateString.split("-");
-  const fechaUltimaObs = `${anio}-${mes}-${dia}`;
 
   return {
     valor: Number(promedio.toFixed(2)),
     cantidadObservaciones: valores.length,
-    fechaUltimaObs,
+    fechaUltimaObs: fechaObsAIso(ultima.indexDateString),
+  };
+}
+
+// Cuenta de ahorro (captaciones 30-89 días): la serie es muy estable
+// (spread ~0.02 pts/mes) y casi diaria → se toma la última observación
+// válida, sin promedio móvil. La API la entrega en BASE MENSUAL, así que
+// hay que convertirla a anual efectiva compuesta antes de guardarla —
+// guardar la mensual cruda fue un bug detectado en el wireframe (0.4 en
+// vez de ~4.2-4.3%).
+async function fetchUltimaTasaCuentaAhorro() {
+  const validas = await fetchObservacionesValidas(SERIE_CUENTA_AHORRO, VENTANA_DIAS_AHORRO);
+
+  const ultima = validas[validas.length - 1];
+  const tasaMensual = parseFloat(ultima.value);
+  const tasaAnualEfectiva = (Math.pow(1 + tasaMensual / 100, 12) - 1) * 100;
+
+  return {
+    valor: Number(tasaAnualEfectiva.toFixed(2)),
+    cantidadObservaciones: validas.length, // informativo: no se promedia
+    fechaUltimaObs: fechaObsAIso(ultima.indexDateString),
   };
 }
 
 async function main() {
-  console.log("== RF07 Bloque 0: actualizar tasasReferencia/tipConsumo ==");
-  console.log(`Consultando ${SERIE_TIP_CONSUMO} (ventana de ${VENTANA_DIAS} días)...`);
+  console.log("== RF07/RF08 Bloque 0: actualizar tasasReferencia (Banco Central) ==");
 
-  const resultado = await fetchPromedioTIPConsumo();
+  console.log(`Consultando ${SERIE_TIP_CONSUMO} (ventana de ${VENTANA_DIAS} días)...`);
+  const tipConsumo = await fetchPromedioTIPConsumo();
   console.log(
-    `Promedio: ${resultado.valor}% (${resultado.cantidadObservaciones} observaciones, última: ${resultado.fechaUltimaObs})`,
+    `  tipConsumo: ${tipConsumo.valor}% anual (promedio de ${tipConsumo.cantidadObservaciones} obs, última: ${tipConsumo.fechaUltimaObs})`,
+  );
+
+  console.log(`Consultando ${SERIE_CUENTA_AHORRO} (ventana de ${VENTANA_DIAS_AHORRO} días)...`);
+  const cuentaAhorro = await fetchUltimaTasaCuentaAhorro();
+  console.log(
+    `  cuentaAhorro: ${cuentaAhorro.valor}% anual efectiva (última obs: ${cuentaAhorro.fechaUltimaObs})`,
   );
 
   const rutaClave = path.join(__dirname, "serviceAccountKey.json");
@@ -120,14 +160,27 @@ async function main() {
   const app = initializeApp({ credential: cert(credenciales) });
   const db = getFirestore(app, "cuentas-claras-db");
 
-  await db.collection("tasasReferencia").doc("tipConsumo").set({
-    valor: resultado.valor,
-    cantidadObservaciones: resultado.cantidadObservaciones,
-    fechaActualizacion: resultado.fechaUltimaObs,
+  // Batch: los dos documentos se actualizan de forma atómica.
+  const batch = db.batch();
+  const coleccion = db.collection("tasasReferencia");
+
+  batch.set(coleccion.doc("tipConsumo"), {
+    valor: tipConsumo.valor,
+    cantidadObservaciones: tipConsumo.cantidadObservaciones,
+    fechaActualizacion: tipConsumo.fechaUltimaObs,
     fuente: "banco-central-script-manual",
   });
 
-  console.log("✅ tasasReferencia/tipConsumo actualizado en Firestore.");
+  batch.set(coleccion.doc("cuentaAhorro"), {
+    valor: cuentaAhorro.valor,
+    cantidadObservaciones: cuentaAhorro.cantidadObservaciones,
+    fechaActualizacion: cuentaAhorro.fechaUltimaObs,
+    fuente: "banco-central-script-manual",
+  });
+
+  await batch.commit();
+
+  console.log("✅ tasasReferencia/tipConsumo y tasasReferencia/cuentaAhorro actualizados en Firestore.");
 }
 
 main().catch((error) => {

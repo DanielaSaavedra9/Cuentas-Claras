@@ -12,7 +12,9 @@ export const brandColors = {
   textSecondary: "#757575",
   textTertiary: "#B3B3B3",
   border: "#E2E2E2",
+  switchOff: "#D9D9D9", // riel del toggle apagado — valor del kit de diseño (más contrastado que `border` sobre el fondo)
   success: "#22C55E",
+  successStrong: "#16A34A", // verde de énfasis del kit (texto/borde de los desgloses de interés)
   successTint: "#E9FBF0",
   error: "#EF4444",
   errorTint: "#FDECEC",
