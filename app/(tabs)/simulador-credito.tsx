@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { TooltipInfo } from "@/components/tooltip-info";
 import { brandColors as colors } from "@/constants/brand-colors";
 import { brandFonts as fonts } from "@/constants/brand-fonts";
 import { auth } from "@/firebaseConfig";
@@ -214,11 +215,17 @@ function EscenarioCard({
           <Text style={styles.resultValor}>{formatCLP(impuestos)}</Text>
         </View>
         <View style={styles.resultRow}>
-          <Text style={styles.resultLabel}>Costo Total del Crédito</Text>
+          <View style={styles.resultLabelRow}>
+            <Text style={styles.resultLabel}>Costo Total del Crédito</Text>
+            <TooltipInfo terminoId="ctc" />
+          </View>
           <Text style={styles.resultValor}>{formatCLP(ctc)}</Text>
         </View>
         <View style={styles.resultRow}>
-          <Text style={styles.resultLabel}>CAE</Text>
+          <View style={styles.resultLabelRow}>
+            <Text style={styles.resultLabel}>CAE</Text>
+            <TooltipInfo terminoId="cae" />
+          </View>
           <Text style={styles.resultValor}>{formatPct(cae)}</Text>
         </View>
       </View>
@@ -352,13 +359,19 @@ function GuardadoCard({
           </Text>
         </View>
         <View style={styles.resultRow}>
-          <Text style={styles.resultLabel}>Costo Total del Crédito</Text>
+          <View style={styles.resultLabelRow}>
+            <Text style={styles.resultLabel}>Costo Total del Crédito</Text>
+            <TooltipInfo terminoId="ctc" />
+          </View>
           <Text style={styles.resultValor}>
             {formatCLP(guardado.resultado.ctc)}
           </Text>
         </View>
         <View style={styles.resultRow}>
-          <Text style={styles.resultLabel}>CAE</Text>
+          <View style={styles.resultLabelRow}>
+            <Text style={styles.resultLabel}>CAE</Text>
+            <TooltipInfo terminoId="cae" />
+          </View>
           <Text style={styles.resultValor}>{formatPct(guardado.resultado.cae)}</Text>
         </View>
       </View>
@@ -649,6 +662,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "baseline",
+  },
+  resultLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   resultLabel: {
     fontSize: 12,

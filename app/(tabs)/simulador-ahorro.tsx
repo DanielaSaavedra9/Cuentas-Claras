@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { TooltipInfo } from "@/components/tooltip-info";
 import { brandColors as colors } from "@/constants/brand-colors";
 import { brandFonts as fonts } from "@/constants/brand-fonts";
 import { auth } from "@/firebaseConfig";
@@ -322,7 +323,10 @@ export default function SimuladorAhorroScreen() {
               </>
             ) : (
               <View style={styles.resultBox}>
-                <Text style={styles.resultCaption}>Con interés compuesto</Text>
+                <View style={styles.resultCaptionRow}>
+                  <Text style={styles.resultCaption}>Con interés compuesto</Text>
+                  <TooltipInfo terminoId="interesCompuesto" />
+                </View>
                 <View style={styles.resultRow}>
                   <Text style={styles.resultLabel}>Total reunido</Text>
                   <Text style={styles.resultValorGrande}>{formatCLP(ahorro.total)}</Text>
@@ -551,6 +555,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     gap: 12,
+  },
+  resultCaptionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   resultCaption: {
     fontSize: 12,
