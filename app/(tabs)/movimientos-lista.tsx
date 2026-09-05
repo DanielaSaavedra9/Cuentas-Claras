@@ -18,6 +18,7 @@ import { UserMenuSheet } from "@/components/user-menu-sheet";
 import { brandColors as colors } from "@/constants/brand-colors";
 import { brandFonts as fonts } from "@/constants/brand-fonts";
 import { auth } from "@/firebaseConfig";
+import { useScrollToTopOnTabPress } from "@/hooks/use-scroll-to-top-on-tab-press";
 import { listarMovimientos, Movimiento } from "@/services/movimientos";
 import { obtenerUsuario } from "@/services/usuarios";
 import { filtrarPorMes, montoEfectivo } from "@/utils/balance";
@@ -68,12 +69,16 @@ export default function MovimientosListaScreen() {
     router.replace("/login");
   };
 
+  // Fix: mismo caso que Home (ver hooks/use-scroll-to-top-on-tab-press.ts)
+  // — el reset de scroll se separó del refresco de datos porque solo el
+  // primero debe depender de si se cambió de tab, no de volver de
+  // movimiento-detalle/movimiento-nuevo con back()/replace().
+  useScrollToTopOnTabPress("movimientos-lista", () => {
+    listRef.current?.scrollToOffset({ offset: 0, animated: false });
+  });
+
   useFocusEffect(
     useCallback(() => {
-      // Mismo fix que Home: al volver a este tab desde otra sección, el
-      // scroll debe volver arriba en vez de quedar donde estaba.
-      listRef.current?.scrollToOffset({ offset: 0, animated: false });
-
       const uid = auth.currentUser?.uid;
       if (!uid) {
         setCargando(false);

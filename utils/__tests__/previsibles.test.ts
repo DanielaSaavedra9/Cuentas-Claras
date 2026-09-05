@@ -97,6 +97,8 @@ describe("calcularDiferenciaSugerido", () => {
   });
 });
 
+// Fix RF05 (.claude/fix-rf05-color-gasto-vencido.md): umbral de "próximo
+// a vencer" decidido en 3 meses.
 describe("estadoPrevisible", () => {
   const hoy = new Date(2026, 7, 15); // 15 de agosto de 2026
 
@@ -108,14 +110,35 @@ describe("estadoPrevisible", () => {
     expect(estadoPrevisible(hoy, "2026-07-15", 50000, 50000)).not.toBe("vencido");
   });
 
-  it("vence este mes (≤1 mes restante), no vencido: 'proximoAVencer'", () => {
+  it("vence este mes (1 mes restante), no vencido: 'proximoAVencer'", () => {
     expect(estadoPrevisible(hoy, "2026-08-31", 10000, 50000)).toBe(
       "proximoAVencer",
     );
   });
 
-  it("faltan varios meses: 'normal'", () => {
+  it("caso límite exacto: 3 meses restantes (el umbral) → 'proximoAVencer'", () => {
+    expect(estadoPrevisible(hoy, "2026-11-01", 10000, 50000)).toBe(
+      "proximoAVencer",
+    );
+  });
+
+  it("caso límite exacto: 4 meses restantes (fuera del umbral) → 'normal'", () => {
     expect(estadoPrevisible(hoy, "2026-12-01", 10000, 50000)).toBe("normal");
+  });
+
+  it("faltan varios meses: 'normal'", () => {
+    expect(estadoPrevisible(hoy, "2027-06-01", 10000, 50000)).toBe("normal");
+  });
+
+  it("saldo ya pagado por completo, dentro del umbral: 'normal', no 'proximoAVencer'", () => {
+    // El color depende de saldo pendiente + proximidad, no solo de la
+    // fecha — un previsible pagado no debe verse amarillo aunque la
+    // fecha límite esté cerca.
+    expect(estadoPrevisible(hoy, "2026-08-31", 50000, 50000)).toBe("normal");
+  });
+
+  it("saldo ya pagado por completo, con fecha límite vencida: 'normal', no 'vencido'", () => {
+    expect(estadoPrevisible(hoy, "2026-07-15", 50000, 50000)).toBe("normal");
   });
 });
 

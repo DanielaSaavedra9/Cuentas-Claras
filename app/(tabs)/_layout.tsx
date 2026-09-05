@@ -3,6 +3,7 @@ import { Tabs } from "expo-router";
 
 import { brandColors as colors } from "@/constants/brand-colors";
 import { brandFonts as fonts } from "@/constants/brand-fonts";
+import { emitirTabPress } from "@/hooks/use-scroll-to-top-on-tab-press";
 
 // Menú de navegación (.claude/menu-navegacion-checklist.md): tab bar real
 // con las 4 secciones del kit de diseño (ver navigation.card.html y
@@ -34,6 +35,7 @@ export default function TabLayout() {
     >
       <Tabs.Screen
         name="index"
+        listeners={{ tabPress: () => emitirTabPress("index") }}
         options={{
           title: "Inicio",
           tabBarIcon: ({ color, focused }) => (
@@ -43,6 +45,7 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="movimientos-lista"
+        listeners={{ tabPress: () => emitirTabPress("movimientos-lista") }}
         options={{
           title: "Movimientos",
           tabBarIcon: ({ color, focused }) => (
