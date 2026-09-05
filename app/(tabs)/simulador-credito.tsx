@@ -22,6 +22,7 @@ import { UserMenuSheet } from "@/components/user-menu-sheet";
 import { brandColors as colors } from "@/constants/brand-colors";
 import { brandFonts as fonts } from "@/constants/brand-fonts";
 import { auth } from "@/firebaseConfig";
+import { useMontoFormateado } from "@/hooks/use-monto-formateado";
 import {
   eliminarEscenario,
   EscenarioGuardado,
@@ -36,6 +37,7 @@ import {
   calcularCuotaMensual,
   calcularImpuestos,
 } from "@/utils/creditoConsumo";
+import { limpiarDecimal } from "@/utils/entradaDecimal";
 
 function formatCLP(valor: number) {
   return "$" + Math.round(valor).toLocaleString("es-CL");
@@ -60,10 +62,11 @@ type EscenarioCardProps = {
 
 // Bloque 3: cada tarjeta calcula de forma independiente — recibe sus
 // propios monto/plazo/tasa y no sabe nada del otro escenario. Bloque 4:
-// el ícono de estrella guarda ESTE escenario en Firestore. "Guardado" no
-// es un booleano local: se deriva de si `escenarioId` sigue en la lista
-// `guardados` — así, si se elimina desde la sección de abajo, la
-// estrella de esta tarjeta se apaga sola en vez de quedar amarilla.
+// el botón "Guardar simulación" guarda ESTE escenario en Firestore (fix
+// RF07: antes era un ícono de estrella). "Guardado" no es un booleano
+// local: se deriva de si `escenarioId` sigue en la lista `guardados` —
+// así, si se elimina desde la sección de abajo, el botón de esta
+// tarjeta vuelve solo a "Guardar simulación" en vez de quedar marcado.
 function EscenarioCard({
   label,
   monto,
@@ -81,6 +84,17 @@ function EscenarioCard({
   const guardado =
     escenarioId !== null && guardados.some((g) => g.id === escenarioId);
 
+  // Fix RF07 (.claude/fix-rf07-simulador-ajustes.md): formato de peso
+  // chileno en el campo Monto, reutilizando utils/formatoMoneda.ts —
+  // mismo hook que el formulario de gasto (RF02). `monto` sigue siendo
+  // el string de dígitos crudos de siempre (lo que se envía a
+  // calcularCuotaMensual/calcularCTC/etc. no cambió), el formateo es
+  // solo de presentación, incluido el valor precargado del primer render.
+  const montoFormato = useMontoFormateado(monto, (digitos) => {
+    setMonto(digitos);
+    setEscenarioId(null);
+  });
+
   const montoNum = Number(monto) || 0;
   const plazoNum = Number(plazo) || 0;
   const tasaNum = Number(tasa) || 0;
@@ -92,7 +106,7 @@ function EscenarioCard({
   const ctc = plazoNum > 0 ? calcularCTC(cuota, plazoNum, impuestos) : 0;
   const cae = calcularCAE(tasaNum);
 
-  // Toggle real: si ya está guardado, tocar la estrella lo elimina (el
+  // Toggle real: si ya está guardado, tocar el botón lo elimina (el
   // mismo documento) en vez de crear un duplicado.
   const onToggleGuardar = async () => {
     const uid = auth.currentUser?.uid;
@@ -141,11 +155,16 @@ function EscenarioCard({
         <Text style={styles.cardLabel}>{label}</Text>
         <View style={styles.cardHeaderActions}>
           <TouchableOpacity onPress={onToggleGuardar} hitSlop={8} disabled={guardando}>
-            <Ionicons
-              name={guardado ? "star" : "star-outline"}
-              size={20}
-              color={guardado ? colors.accent : colors.textTertiary}
-            />
+            <Text
+              style={[styles.guardarTexto, guardado && styles.guardarTextoGuardado]}
+              numberOfLines={1}
+            >
+              {guardando
+                ? "Guardando…"
+                : guardado
+                  ? "Simulación guardada"
+                  : "Guardar simulación"}
+            </Text>
           </TouchableOpacity>
           {onRemove ? (
             <TouchableOpacity onPress={onRemove} hitSlop={8}>
@@ -159,11 +178,10 @@ function EscenarioCard({
         <Text style={styles.label}>Monto</Text>
         <TextInput
           style={styles.input}
-          value={monto}
-          onChangeText={(t) => {
-            setMonto(t.replace(/[^0-9]/g, ""));
-            setEscenarioId(null);
-          }}
+          value={montoFormato.textoMostrado}
+          selection={montoFormato.seleccion}
+          onSelectionChange={montoFormato.onSelectionChange}
+          onChangeText={montoFormato.onChangeText}
           keyboardType="numeric"
           placeholder="0"
           placeholderTextColor={colors.textTertiary}
@@ -193,7 +211,7 @@ function EscenarioCard({
             style={styles.input}
             value={tasa}
             onChangeText={(t) => {
-              setTasa(t.replace(/[^0-9.]/g, ""));
+              setTasa(limpiarDecimal(t));
               setEscenarioId(null);
             }}
             keyboardType="decimal-pad"
@@ -231,15 +249,19 @@ function EscenarioCard({
           <Text style={styles.resultValor}>{formatPct(cae)}</Text>
         </View>
       </View>
+
     </View>
   );
 }
 
 // Bloque 4: la tarjeta de un escenario ya guardado — mismo layout que
 // EscenarioCard (mismos campos, misma caja de resultados), pero de solo
-// lectura (sin TextInput). Mantiene el ícono de estrella (mismo que en
-// EscenarioCard, para no perder la intencionalidad visual) — tocarla acá
-// siempre elimina, con confirmación porque es una acción terminal.
+// lectura (sin TextInput). Fix RF07 (revisión en dispositivo): se quitó
+// la estrella — el label "Guardado" pasa a verde (`cardLabelGuardado`)
+// para reforzar el estado, y en su lugar (donde antes estaba la
+// estrella) va un ícono de tacho de basura, que comunica mejor "podés
+// eliminar esto" que un texto o una estrella. Abre el mismo modal de
+// confirmación de siempre al tocarlo (acción terminal).
 function GuardadoCard({
   guardado,
   onEliminado,
@@ -266,13 +288,13 @@ function GuardadoCard({
   return (
     <View style={styles.card}>
       <View style={styles.cardHeaderRow}>
-        <Text style={styles.cardLabel}>Guardado</Text>
+        <Text style={[styles.cardLabel, styles.cardLabelGuardado]}>Guardado</Text>
         <TouchableOpacity
           onPress={() => setConfirmar(true)}
           hitSlop={8}
           disabled={eliminando}
         >
-          <Ionicons name="star" size={20} color={colors.accent} />
+          <Ionicons name="trash-outline" size={18} color={colors.error} />
         </TouchableOpacity>
       </View>
 
@@ -521,6 +543,19 @@ export default function SimuladorCreditoScreen() {
               ))}
             </View>
           ) : null}
+
+          {/* Fix RF07: aviso educativo obligatorio (RNF03, Ley Fintech
+              N°21.521), visible desde el primer render — quedó pendiente
+              del checklist original de RF07 (se retiró al ajustar el
+              layout al mockup y nunca se reincorporó). Mismo texto/estilo
+              que ya usa el simulador de ahorro (RF08). */}
+          <Text style={styles.aviso}>
+            Los resultados son una estimación educativa calculada con la tasa que
+            ingreses. No consideran comisiones ni gastos operacionales adicionales
+            de cada institución, y no constituyen una oferta ni asesoría financiera
+            formal. El CAE y el CTC reales dependen de las condiciones de cada
+            institución (Ley N°21.521).
+          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -629,7 +664,7 @@ const styles = StyleSheet.create({
   cardHeaderActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
+    gap: 12,
   },
   cardLabel: {
     fontSize: 12,
@@ -638,6 +673,9 @@ const styles = StyleSheet.create({
     color: colors.brand,
     textTransform: "uppercase",
     fontFamily: fonts.bodySemiBold,
+  },
+  cardLabelGuardado: {
+    color: colors.successStrong,
   },
   field: {
     gap: 8,
@@ -723,6 +761,15 @@ const styles = StyleSheet.create({
     color: colors.brand,
     fontFamily: fonts.bodySemiBold,
   },
+  guardarTexto: {
+    fontSize: 11.5,
+    fontWeight: "600",
+    color: colors.brand,
+    fontFamily: fonts.bodySemiBold,
+  },
+  guardarTextoGuardado: {
+    color: colors.successStrong,
+  },
   guardadosSection: {
     gap: 8,
   },
@@ -731,6 +778,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: colors.textPrimary,
     fontFamily: fonts.bodySemiBold,
+  },
+  aviso: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: colors.textSecondary,
+    fontFamily: fonts.bodyRegular,
   },
 });
 

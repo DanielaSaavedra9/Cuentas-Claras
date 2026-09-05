@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
 import { Controller, useWatch, UseFormReturn } from "react-hook-form";
 import {
   Pressable,
@@ -11,16 +10,12 @@ import {
 } from "react-native";
 import { z } from "zod";
 
+import { MontoInput } from "@/components/monto-input";
 import { SelectField } from "@/components/select-field";
 import { TooltipInfo } from "@/components/tooltip-info";
 import { brandColors as colors } from "@/constants/brand-colors";
 import { brandFonts as fonts } from "@/constants/brand-fonts";
 import { CategoriaMovimiento } from "@/services/movimientos";
-import {
-  calcularPosicionCursor,
-  formatearPesoChileno,
-  parsearPesoChileno,
-} from "@/utils/formatoMoneda";
 
 export const CATEGORIAS: { value: CategoriaMovimiento; label: string }[] = [
   { value: "ahorro", label: "Ahorro" },
@@ -173,78 +168,6 @@ function Switch({ value, onChange }: { value: boolean; onChange: () => void }) {
     >
       <View style={[styles.switchThumb, value && styles.switchThumbActive]} />
     </Pressable>
-  );
-}
-
-function mostrarMonto(digitosCrudos: string) {
-  return formatearPesoChileno(parsearPesoChileno(digitosCrudos));
-}
-
-// Fix RF02 (.claude/fix-rf02-formato-peso-chileno.md): el campo de monto
-// se ve con separador de miles chileno mientras se escribe, pero el
-// valor que RHF guarda (y lo que valida el schema/se envía a Firestore)
-// sigue siendo el string de dígitos crudos de siempre — el formateo es
-// solo de presentación. `selection` controlado + `calcularPosicionCursor`
-// evitan que el cursor salte al reformatear (los puntos de separador se
-// corren al escribir/borrar en medio del número).
-//
-// Ancho del campo: un `TextInput` sin ancho fijo NO vuelve a medir su
-// contenido de forma confiable en cada tecla en React Native (por eso
-// con `flexShrink`/ancho automático el número se cortaba a veces sí, a
-// veces no, según si la plataforma decidía remedir o no). La solución
-// determinística es medir el texto real con un `Text` invisible (mismo
-// tipografía/tamaño) vía `onLayout`, y pasarle ese ancho al `TextInput`.
-function MontoInput({
-  value,
-  onChange,
-  onBlur,
-  style,
-  color,
-}: {
-  value: string;
-  onChange: (texto: string) => void;
-  onBlur: () => void;
-  style: object;
-  color: string;
-}) {
-  const [seleccion, setSeleccion] = useState<{ start: number; end: number }>();
-  const [anchoMedido, setAnchoMedido] = useState<number>();
-  const textoMostrado = mostrarMonto(value);
-
-  return (
-    <>
-      <Text
-        style={[style, styles.montoMedidor]}
-        onLayout={(e) => setAnchoMedido(e.nativeEvent.layout.width)}
-      >
-        {textoMostrado || "0"}
-      </Text>
-      <TextInput
-        style={[style, anchoMedido ? { width: anchoMedido + 8 } : null]}
-        placeholder="0"
-        placeholderTextColor={colors.textTertiary}
-        value={textoMostrado}
-        selection={seleccion}
-        onSelectionChange={(e) => setSeleccion(e.nativeEvent.selection)}
-        onChangeText={(textoNuevo) => {
-          const digitos = textoNuevo.replace(/[^0-9]/g, "");
-          onChange(digitos);
-
-          const cursorAnterior = seleccion?.end ?? textoMostrado.length;
-          const textoReformateado = mostrarMonto(digitos);
-          const nuevaPosicion = calcularPosicionCursor(
-            textoMostrado,
-            cursorAnterior,
-            textoReformateado,
-          );
-          setSeleccion({ start: nuevaPosicion, end: nuevaPosicion });
-        }}
-        onBlur={onBlur}
-        keyboardType="numeric"
-        selectionColor={color}
-        cursorColor={color}
-      />
-    </>
   );
 }
 
@@ -643,21 +566,14 @@ export const styles = StyleSheet.create({
     fontSize: 40,
     fontWeight: "600",
     fontFamily: fonts.displayBold,
-    // El ancho real lo fija `MontoInput` en tiempo real (mide el texto
-    // con `montoMedidor` de abajo) — un TextInput sin ancho explícito no
-    // remide su contenido de forma confiable en cada tecla. `minWidth`
-    // es solo el piso mientras se hace la primera medición.
+    // El ancho real lo fija `MontoInput` (components/monto-input.tsx) en
+    // tiempo real, midiendo el texto con un `Text` invisible — un
+    // TextInput sin ancho explícito no remide su contenido de forma
+    // confiable en cada tecla. `minWidth` es solo el piso mientras se
+    // hace la primera medición.
     minWidth: 20,
     textAlign: "left",
     padding: 0,
-  },
-  // Copia invisible del campo de monto, misma tipografía/tamaño, fuera
-  // del flujo (no ocupa espacio ni se ve) — solo existe para que
-  // `onLayout` entregue el ancho real del texto actual.
-  montoMedidor: {
-    position: "absolute",
-    opacity: 0,
-    zIndex: -1,
   },
   montoError: {
     textAlign: "center",

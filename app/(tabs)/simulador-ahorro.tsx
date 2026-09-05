@@ -30,6 +30,7 @@ import {
   calcularTotalAportado,
   compararRendimiento,
 } from "@/utils/cuentaAhorro";
+import { limpiarDecimal } from "@/utils/entradaDecimal";
 
 function formatCLP(valor: number) {
   return "$" + Math.round(valor).toLocaleString("es-CL");
@@ -138,7 +139,10 @@ export default function SimuladorAhorroScreen() {
   const mensualAportado = M * meses;
 
   const onlyNum = (t: string) => t.replace(/[^0-9]/g, "");
-  const onlyDecimal = (t: string) => t.replace(/[^0-9.]/g, "");
+  // Fix RF07 (mismo bug encontrado en el simulador de crédito, ver
+  // utils/entradaDecimal.ts): el teclado decimal en configuración
+  // regional chilena solo ofrece coma, no punto.
+  const onlyDecimal = limpiarDecimal;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>

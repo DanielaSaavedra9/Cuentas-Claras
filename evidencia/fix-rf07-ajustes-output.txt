@@ -1,0 +1,30 @@
+
+> cuentas-claras@1.0.0 test
+> jest
+
+PASS services/__tests__/registro.integration.test.ts
+PASS hooks/__tests__/use-monto-formateado.test.ts
+PASS utils/__tests__/entradaDecimal.test.ts
+PASS services/__tests__/usuarios.test.ts
+PASS services/__tests__/previsibles.integration.test.ts
+PASS services/__tests__/movimientos.test.ts
+PASS constants/__tests__/glosario.test.ts
+PASS services/__tests__/escenarios.integration.test.ts
+PASS utils/__tests__/previsibles.test.ts
+PASS utils/__tests__/balance.integration.test.ts
+PASS utils/__tests__/formatoMoneda.test.ts
+PASS utils/__tests__/creditoConsumo.test.ts
+PASS utils/__tests__/authErrors.test.ts
+PASS services/__tests__/movimientos.integration.test.ts
+PASS utils/__tests__/cuentaAhorro.test.ts
+PASS utils/__tests__/balance.test.ts
+PASS components/__tests__/movimiento-form.schema.test.ts
+PASS app/__tests__/recuperar-contrasena.schema.test.ts
+PASS app/__tests__/login.schema.test.ts
+PASS app/__tests__/registro.schema.test.ts
+
+Test Suites: 20 passed, 20 total
+Tests:       199 passed, 199 total
+Snapshots:   0 total
+Time:        1.922 s, estimated 12 s
+Ran all test suites.
