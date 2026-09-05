@@ -8,7 +8,7 @@ import {
     Inter_600SemiBold,
     Inter_700Bold,
 } from "@expo-google-fonts/inter";
-import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
+import { DefaultTheme, ThemeProvider } from "expo-router/react-navigation";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";

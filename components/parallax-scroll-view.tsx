@@ -24,7 +24,9 @@ export default function ParallaxScrollView({
   headerBackgroundColor,
 }: Props) {
   const backgroundColor = useThemeColor({}, 'background');
-  const colorScheme = useColorScheme() ?? 'light';
+  // Chore SDK 57: mismo fix que hooks/use-theme-color.ts — 'unspecified'
+  // (nuevo valor de ColorSchemeName) también debe caer a 'light'.
+  const colorScheme = useColorScheme() === 'dark' ? 'dark' : 'light';
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const scrollOffset = useScrollOffset(scrollRef);
   const headerAnimatedStyle = useAnimatedStyle(() => {

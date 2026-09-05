@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -60,7 +60,14 @@ export default function GastoPrevisibleDetalleScreen() {
   const [editarMonto, setEditarMonto] = useState(false);
   const [montoEditado, setMontoEditado] = useState("");
 
-  const cargarMovimiento = () => {
+  // Chore SDK 57: eslint-config-expo trajo react-hooks/set-state-in-effect,
+  // que marca error el `setNoEncontrado`/`setCargando` síncronos de la
+  // rama `if (!uid || !id)` (setState directo dentro del cuerpo del
+  // efecto). Se difiere la llamada a un microtask para que ambas ramas
+  // actualicen estado después de que el efecto ya confirmó — mismo
+  // comportamiento. `useCallback` para poder declararla como dependencia
+  // del efecto sin que se re-dispare en cada render.
+  const cargarMovimiento = useCallback(() => {
     const uid = auth.currentUser?.uid;
     if (!uid || !id) {
       setNoEncontrado(true);
@@ -77,9 +84,11 @@ export default function GastoPrevisibleDetalleScreen() {
       })
       .catch(() => setNoEncontrado(true))
       .finally(() => setCargando(false));
-  };
+  }, [id]);
 
-  useEffect(cargarMovimiento, [id]);
+  useEffect(() => {
+    Promise.resolve().then(cargarMovimiento);
+  }, [cargarMovimiento]);
 
   if (cargando) {
     return (

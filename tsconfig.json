@@ -2,6 +2,14 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    // Chore SDK 57 (.claude/chore-upgrade-expo-sdk-57.md): TypeScript 6.0.3
+    // (vino con el upgrade) dejó de auto-incluir los paquetes ambientales
+    // de node_modules/@types cuando "types" no está declarado — sin esto,
+    // "describe"/"it"/"expect"/"jest" desaparecían de todos los archivos
+    // de test. "node" se agrega explícito por lo mismo (declara `process`,
+    // que unos pocos archivos usan); "react" no hace falta acá porque se
+    // resuelve solo vía el import automático de react/jsx-runtime.
+    "types": ["jest", "node"],
     "paths": {
       "@/*": [
         "./*"
