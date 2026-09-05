@@ -1,10 +1,19 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
+import { signOut } from "firebase/auth";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CATEGORIA_ICONS } from "@/components/movimiento-form";
+import { UserMenuSheet } from "@/components/user-menu-sheet";
 import { brandColors as colors } from "@/constants/brand-colors";
 import { brandFonts as fonts } from "@/constants/brand-fonts";
 import { auth } from "@/firebaseConfig";
@@ -61,6 +70,8 @@ export default function HomeScreen() {
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [todosLosMovimientos, setTodosLosMovimientos] = useState<Movimiento[]>([]);
   const [nombre, setNombre] = useState("");
+  const [apellido, setApellido] = useState("");
+  const [menuAbierto, setMenuAbierto] = useState(false);
 
   // Reportado por la usuaria: al volver a este tab desde otra sección, el
   // scroll quedaba donde lo había dejado en vez de volver arriba.
@@ -74,9 +85,20 @@ export default function HomeScreen() {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
     obtenerUsuario(uid).then((usuario) => {
-      if (usuario) setNombre(usuario.nombre);
+      if (usuario) {
+        setNombre(usuario.nombre);
+        setApellido(usuario.apellido);
+      }
     });
   }, []);
+
+  // Menú de usuario (.claude/dropdown-cerrar-sesion.md): sin persistencia
+  // de sesión propia (ver Estado-del-desarrollo.md §6), signOut() basta —
+  // no hay nada que limpiar de AsyncStorage.
+  const cerrarSesion = async () => {
+    await signOut(auth);
+    router.replace("/login");
+  };
 
   // Bloque 1: listener en tiempo real acotado al mes seleccionado (balance
   // + últimos movimientos). Bloque 2: cambiar de mes re-suscribe el
@@ -138,11 +160,13 @@ export default function HomeScreen() {
           <>
             <View style={styles.topBar}>
               <Text style={styles.greeting}>Hola{nombre ? `, ${nombre}` : ""}</Text>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {nombre ? nombre.charAt(0).toUpperCase() : "?"}
-                </Text>
-              </View>
+              <Pressable onPress={() => setMenuAbierto(true)}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>
+                    {nombre ? nombre.charAt(0).toUpperCase() : "?"}
+                  </Text>
+                </View>
+              </Pressable>
             </View>
 
             <View style={styles.balanceCard}>
@@ -387,6 +411,16 @@ export default function HomeScreen() {
       >
         <Ionicons name="add" size={26} color={colors.textPrimary} />
       </TouchableOpacity>
+
+      <UserMenuSheet
+        visible={menuAbierto}
+        onClose={() => setMenuAbierto(false)}
+        nombre={nombre}
+        apellido={apellido}
+        correo={auth.currentUser?.email ?? ""}
+        onEditarPerfil={() => router.push("/editar-perfil")}
+        onCerrarSesion={cerrarSesion}
+      />
     </SafeAreaView>
   );
 }

@@ -181,9 +181,22 @@ export function escucharMovimientosDelMes(
     orderBy("fecha", "desc"),
   );
 
-  return onSnapshot(q, (snapshot) => {
-    onChange(ordenarPorFechaYCreacion(snapshot.docs.map(mapearMovimiento)));
-  });
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      onChange(ordenarPorFechaYCreacion(snapshot.docs.map(mapearMovimiento)));
+    },
+    () => {
+      // Único listener en tiempo real del proyecto — sin este manejador,
+      // un "permission-denied" quedaba sin capturar en la consola.
+      // Pasa de forma esperada al cerrar sesión o "darse de baja" (menú
+      // de usuario, .claude/dropdown-cerrar-sesion.md): auth invalida la
+      // sesión antes de que React alcance a desmontar Home y cancelar
+      // este listener, así que llega un último evento sin permisos. No
+      // es un error real — los datos ya se borraron o la sesión ya
+      // cerró — por eso no se propaga ni se reintenta.
+    },
+  );
 }
 
 // A diferencia de crearMovimiento, acá se usa deleteField() para los

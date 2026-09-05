@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
+import { signOut } from "firebase/auth";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -8,8 +10,9 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 
+import { UserMenuSheet } from "@/components/user-menu-sheet";
 import { brandColors as colors } from "@/constants/brand-colors";
 import { brandFonts as fonts } from "@/constants/brand-fonts";
 import {
@@ -58,7 +61,10 @@ function ConceptoCard({
 }
 
 export default function AprenderScreen() {
+  const router = useRouter();
   const [nombre, setNombre] = useState("");
+  const [apellido, setApellido] = useState("");
+  const [menuAbierto, setMenuAbierto] = useState(false);
   const [abierto, setAbierto] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
 
@@ -66,9 +72,17 @@ export default function AprenderScreen() {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
     obtenerUsuario(uid).then((usuario) => {
-      if (usuario) setNombre(usuario.nombre);
+      if (usuario) {
+        setNombre(usuario.nombre);
+        setApellido(usuario.apellido);
+      }
     });
   }, []);
+
+  const cerrarSesion = async () => {
+    await signOut(auth);
+    router.replace("/login");
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -80,11 +94,13 @@ export default function AprenderScreen() {
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <View style={styles.header}>
         <Text style={styles.title}>Aprender</Text>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {nombre ? nombre.charAt(0).toUpperCase() : "?"}
-          </Text>
-        </View>
+        <Pressable onPress={() => setMenuAbierto(true)}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {nombre ? nombre.charAt(0).toUpperCase() : "?"}
+            </Text>
+          </View>
+        </Pressable>
       </View>
 
       <ScrollView
@@ -106,6 +122,16 @@ export default function AprenderScreen() {
           ))}
         </View>
       </ScrollView>
+
+      <UserMenuSheet
+        visible={menuAbierto}
+        onClose={() => setMenuAbierto(false)}
+        nombre={nombre}
+        apellido={apellido}
+        correo={auth.currentUser?.email ?? ""}
+        onEditarPerfil={() => router.push("/editar-perfil")}
+        onCerrarSesion={cerrarSesion}
+      />
     </SafeAreaView>
   );
 }
