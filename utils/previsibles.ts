@@ -52,10 +52,19 @@ export function estaAtrasado(
 
 export type EstadoPrevisible = "vencido" | "proximoAVencer" | "normal";
 
+// Umbral de "próximo a vencer" (fix RF05,
+// .claude/fix-rf05-color-gasto-vencido.md): 3 meses o menos hasta la
+// fecha límite, decidido con la usuaria. Constante aparte para no dejar
+// un "3" mágico suelto en el cuerpo de la función.
+const UMBRAL_PROXIMO_A_VENCER_MESES = 3;
+
 // Estado visual del gasto previsible: "vencido" si ya pasó la fecha
-// límite con saldo pendiente; "proximoAVencer" si no está vencido pero
-// queda un mes o menos (mesesRestantes tiene piso 1, así que esto cubre
-// "vence este mes"); "normal" el resto de los casos (sin indicador).
+// límite con saldo pendiente; "proximoAVencer" si no está vencido, queda
+// saldo pendiente, y faltan `UMBRAL_PROXIMO_A_VENCER_MESES` meses o
+// menos; "normal" el resto de los casos (sin indicador) — incluido un
+// previsible ya pagado por completo, sin importar qué tan cerca esté la
+// fecha límite (el color depende de saldo pendiente + proximidad, no
+// solo de la fecha).
 export function estadoPrevisible(
   fechaActual: Date,
   fechaLimite: string,
@@ -65,7 +74,11 @@ export function estadoPrevisible(
   if (estaAtrasado(fechaActual, fechaLimite, montoAbonado, montoTotal)) {
     return "vencido";
   }
-  if (mesesRestantes(fechaActual, fechaLimite) <= 1) {
+  const saldoPendiente = montoAbonado < montoTotal;
+  if (
+    saldoPendiente &&
+    mesesRestantes(fechaActual, fechaLimite) <= UMBRAL_PROXIMO_A_VENCER_MESES
+  ) {
     return "proximoAVencer";
   }
   return "normal";

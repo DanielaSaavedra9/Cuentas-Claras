@@ -186,8 +186,15 @@ export default function GastoPrevisibleDetalleScreen() {
               Vence {formatFechaCorta(movimiento.previsibleFechaLimite!)}
             </Text>
             {estado !== "normal" ? (
-              <View style={styles.atrasadoBadge}>
-                <Text style={styles.atrasadoBadgeText}>
+              <View
+                style={[styles.atrasadoBadge, atrasado && styles.atrasadoBadgeVencido]}
+              >
+                <Text
+                  style={[
+                    styles.atrasadoBadgeText,
+                    atrasado && styles.atrasadoBadgeTextVencido,
+                  ]}
+                >
                   {atrasado ? "Vencido" : "Próximo a vencer"}
                 </Text>
               </View>
@@ -366,17 +373,26 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontFamily: fonts.bodyRegular,
   },
+  // Fix RF05 (.claude/fix-rf05-color-gasto-vencido.md): "próximo a
+  // vencer" se queda en ámbar; "vencido" pasa a rojo — antes ambos
+  // estados compartían el mismo color ámbar, sin distinguirse entre sí.
   atrasadoBadge: {
     backgroundColor: "#FDECC0",
     borderRadius: 20,
     paddingHorizontal: 9,
     paddingVertical: 3,
   },
+  atrasadoBadgeVencido: {
+    backgroundColor: colors.errorTint,
+  },
   atrasadoBadgeText: {
     fontSize: 11,
     fontWeight: "600",
     color: "#B5820A",
     fontFamily: fonts.bodySemiBold,
+  },
+  atrasadoBadgeTextVencido: {
+    color: colors.error,
   },
   montosRow: {
     flexDirection: "row",

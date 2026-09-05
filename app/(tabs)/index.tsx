@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -17,6 +17,7 @@ import { UserMenuSheet } from "@/components/user-menu-sheet";
 import { brandColors as colors } from "@/constants/brand-colors";
 import { brandFonts as fonts } from "@/constants/brand-fonts";
 import { auth } from "@/firebaseConfig";
+import { useScrollToTopOnTabPress } from "@/hooks/use-scroll-to-top-on-tab-press";
 import {
   escucharMovimientosDelMes,
   listarMovimientos,
@@ -74,12 +75,16 @@ export default function HomeScreen() {
   const [menuAbierto, setMenuAbierto] = useState(false);
 
   // Reportado por la usuaria: al volver a este tab desde otra sección, el
-  // scroll quedaba donde lo había dejado en vez de volver arriba.
-  useFocusEffect(
-    useCallback(() => {
-      listRef.current?.scrollToOffset({ offset: 0, animated: false });
-    }, []),
-  );
+  // scroll quedaba donde lo había dejado en vez de volver arriba. Fix
+  // posterior (mismo reporte, otra vuelta): un `useFocusEffect` resetea
+  // el scroll también al volver de una pantalla apilada (ej.
+  // gasto-previsible-detalle), donde el usuario espera quedar donde
+  // estaba — no distingue "cambié de tab" de "volví con back()". Se
+  // conecta al `tabPress` real del tab bar en vez de al foco, ver
+  // hooks/use-scroll-to-top-on-tab-press.ts.
+  useScrollToTopOnTabPress("index", () => {
+    listRef.current?.scrollToOffset({ offset: 0, animated: false });
+  });
 
   useEffect(() => {
     const uid = auth.currentUser?.uid;
@@ -363,8 +368,18 @@ export default function HomeScreen() {
                     <View style={styles.previsibleHeaderRow}>
                       <Text style={styles.previsibleLabel}>{p.descripcion}</Text>
                       {estado !== "normal" ? (
-                        <View style={styles.atrasadoBadge}>
-                          <Text style={styles.atrasadoBadgeText}>
+                        <View
+                          style={[
+                            styles.atrasadoBadge,
+                            vencido && styles.atrasadoBadgeVencido,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.atrasadoBadgeText,
+                              vencido && styles.atrasadoBadgeTextVencido,
+                            ]}
+                          >
                             {vencido ? "Vencido" : "Próximo a vencer"}
                           </Text>
                         </View>
@@ -673,17 +688,28 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontFamily: fonts.bodySemiBold,
   },
+  // Fix RF05 (.claude/fix-rf05-color-gasto-vencido.md): "próximo a
+  // vencer" se queda en ámbar (color ya usado acá antes de este fix);
+  // "vencido" pasa a rojo (`colors.error`/`errorTint`, mismos tokens que
+  // el resto de la app usa para estados de error) — antes ambos estados
+  // compartían el mismo color ámbar, sin distinguirse entre sí.
   atrasadoBadge: {
     backgroundColor: "#FDECC0",
     borderRadius: 20,
     paddingHorizontal: 9,
     paddingVertical: 3,
   },
+  atrasadoBadgeVencido: {
+    backgroundColor: colors.errorTint,
+  },
   atrasadoBadgeText: {
     fontSize: 11,
     fontWeight: "600",
     color: "#B5820A",
     fontFamily: fonts.bodySemiBold,
+  },
+  atrasadoBadgeTextVencido: {
+    color: colors.error,
   },
   previsibleMeta: {
     fontSize: 11.5,
