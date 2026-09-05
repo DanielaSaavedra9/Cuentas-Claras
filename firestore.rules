@@ -8,6 +8,10 @@ service cloud.firestore {
       allow update: if request.auth != null && request.auth.uid == userId
         && !request.resource.data.diff(resource.data).affectedKeys()
              .hasAny(['fechaRegistro', 'consentimientoAceptado', 'fechaConsentimiento']);
+      // Menú de usuario — "Darse de baja" (.claude/dropdown-cerrar-sesion.md):
+      // sin esto, eliminarCuentaCompleta() no podía borrar el propio
+      // documento del usuario (no había ninguna regla `allow delete` acá).
+      allow delete: if request.auth != null && request.auth.uid == userId;
 
       match /movimientos/{movId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;

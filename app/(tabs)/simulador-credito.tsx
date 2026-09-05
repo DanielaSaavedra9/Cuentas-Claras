@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
+import { signOut } from "firebase/auth";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -17,6 +18,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { TooltipInfo } from "@/components/tooltip-info";
+import { UserMenuSheet } from "@/components/user-menu-sheet";
 import { brandColors as colors } from "@/constants/brand-colors";
 import { brandFonts as fonts } from "@/constants/brand-fonts";
 import { auth } from "@/firebaseConfig";
@@ -394,15 +396,25 @@ export default function SimuladorCreditoScreen() {
 
   const [guardados, setGuardados] = useState<EscenarioGuardado[]>([]);
   const [nombre, setNombre] = useState("");
+  const [apellido, setApellido] = useState("");
+  const [menuAbierto, setMenuAbierto] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
     obtenerUsuario(uid).then((usuario) => {
-      if (usuario) setNombre(usuario.nombre);
+      if (usuario) {
+        setNombre(usuario.nombre);
+        setApellido(usuario.apellido);
+      }
     });
   }, []);
+
+  const cerrarSesion = async () => {
+    await signOut(auth);
+    router.replace("/login");
+  };
 
   useEffect(() => {
     obtenerTasaTipConsumo().then((tasaReferencia) => {
@@ -435,11 +447,13 @@ export default function SimuladorCreditoScreen() {
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <View style={styles.header}>
         <Text style={styles.title}>Simuladores</Text>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {nombre ? nombre.charAt(0).toUpperCase() : "?"}
-          </Text>
-        </View>
+        <Pressable onPress={() => setMenuAbierto(true)}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {nombre ? nombre.charAt(0).toUpperCase() : "?"}
+            </Text>
+          </View>
+        </Pressable>
       </View>
 
       <KeyboardAvoidingView
@@ -509,6 +523,16 @@ export default function SimuladorCreditoScreen() {
           ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <UserMenuSheet
+        visible={menuAbierto}
+        onClose={() => setMenuAbierto(false)}
+        nombre={nombre}
+        apellido={apellido}
+        correo={auth.currentUser?.email ?? ""}
+        onEditarPerfil={() => router.push("/editar-perfil")}
+        onCerrarSesion={cerrarSesion}
+      />
     </SafeAreaView>
   );
 }

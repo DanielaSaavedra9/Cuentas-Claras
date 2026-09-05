@@ -81,6 +81,7 @@ export default function RootLayout() {
           name="gasto-previsible-detalle"
           options={{ headerShown: false }}
         />
+        <Stack.Screen name="editar-perfil" options={{ headerShown: false }} />
         <Stack.Screen
           name="modal"
           options={{ presentation: "modal", title: "Modal" }}
