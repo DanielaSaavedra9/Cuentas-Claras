@@ -5,6 +5,7 @@ import {
   estaAtrasado,
   formatFechaCorta,
   mesesRestantes,
+  previsiblesPendientesOrdenados,
 } from "@/utils/previsibles";
 
 describe("mesesRestantes", () => {
@@ -121,5 +122,58 @@ describe("estadoPrevisible", () => {
 describe("formatFechaCorta", () => {
   it("convierte YYYY-MM-DD a DD-MM-YYYY", () => {
     expect(formatFechaCorta("2026-07-15")).toBe("15-07-2026");
+  });
+});
+
+// Fix RF05 (.claude/fix-rf05-listado-previsibles.md): la tarjeta "Gastos
+// previsibles próximos" del Home tenía un `.slice(0, 3)` que ocultaba
+// los previsibles a partir del 4º. Regresión: con más de 3, deben
+// devolverse todos, ordenados por fecha límite ascendente.
+function previsible(id: string, fechaLimite: string, montoAbonado = 0, monto = 10000) {
+  return {
+    id,
+    esPrevisible: true,
+    previsibleFechaLimite: fechaLimite,
+    previsibleMontoAbonado: montoAbonado,
+    monto,
+  };
+}
+
+describe("previsiblesPendientesOrdenados", () => {
+  it("con más de 3 gastos previsibles pendientes, devuelve todos (no se acota a 3)", () => {
+    const movimientos = [
+      previsible("1", "2026-10-01"),
+      previsible("2", "2026-11-01"),
+      previsible("3", "2026-12-01"),
+      previsible("4", "2027-01-01"),
+      previsible("5", "2027-02-01"),
+    ];
+    expect(previsiblesPendientesOrdenados(movimientos)).toHaveLength(5);
+  });
+
+  it("ordena por fecha límite ascendente (el que vence antes, primero)", () => {
+    const movimientos = [
+      previsible("tardio", "2027-06-01"),
+      previsible("proximo", "2026-10-01"),
+      previsible("medio", "2026-12-01"),
+    ];
+    const resultado = previsiblesPendientesOrdenados(movimientos);
+    expect(resultado.map((m) => m.id)).toEqual(["proximo", "medio", "tardio"]);
+  });
+
+  it("excluye los que no son previsibles, sin fecha límite, o ya completos", () => {
+    const movimientos = [
+      previsible("pendiente", "2026-10-01", 5000, 10000),
+      { id: "no-previsible", esPrevisible: false, monto: 10000 },
+      { id: "sin-fecha", esPrevisible: true, monto: 10000 },
+      previsible("completo", "2026-11-01", 10000, 10000),
+    ];
+    expect(previsiblesPendientesOrdenados(movimientos).map((m) => m.id)).toEqual([
+      "pendiente",
+    ]);
+  });
+
+  it("sin previsibles pendientes, devuelve la lista vacía", () => {
+    expect(previsiblesPendientesOrdenados([])).toEqual([]);
   });
 });
