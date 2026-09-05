@@ -76,3 +76,32 @@ export function formatFechaCorta(fecha: string): string {
   const [anio, mes, dia] = fecha.split("-");
   return `${dia}-${mes}-${anio}`;
 }
+
+// Fix RF05 (.claude/fix-rf05-listado-previsibles.md): la tarjeta "Gastos
+// previsibles próximos" del Home usaba este mismo filtro+orden seguido
+// de un `.slice(0, 3)` que dejaba ocultos los previsibles a partir del
+// 4º — no hay ninguna otra pantalla que liste "todos los previsibles",
+// así que esa tarjeta ES el listado completo y no debía estar acotada.
+// Se extrae acá (antes vivía inline en app/(tabs)/index.tsx) para poder
+// testear el filtro+orden sin renderizar el componente. Firma genérica
+// (no importa `Movimiento` de services/) para no crear una dependencia
+// circular utils↔services — services/movimientos.ts ya importa de acá.
+export function previsiblesPendientesOrdenados<
+  T extends {
+    esPrevisible?: boolean;
+    previsibleFechaLimite?: string;
+    previsibleMontoAbonado?: number;
+    monto: number;
+  },
+>(movimientos: T[]): T[] {
+  return movimientos
+    .filter(
+      (m) =>
+        m.esPrevisible &&
+        m.previsibleFechaLimite &&
+        (m.previsibleMontoAbonado ?? 0) < m.monto,
+    )
+    .sort((a, b) =>
+      a.previsibleFechaLimite!.localeCompare(b.previsibleFechaLimite!),
+    );
+}
