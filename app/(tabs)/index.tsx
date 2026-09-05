@@ -28,6 +28,7 @@ import {
   calcularCuotaSugerida,
   estadoPrevisible,
   formatFechaCorta,
+  previsiblesPendientesOrdenados,
 } from "@/utils/previsibles";
 
 const MESES = [
@@ -118,15 +119,13 @@ export default function HomeScreen() {
   );
   const maxGasto = Math.max(...gastosPorMes, 1);
 
-  const gastosPrevisiblesProximos = todosLosMovimientos
-    .filter(
-      (m) =>
-        m.esPrevisible &&
-        m.previsibleFechaLimite &&
-        (m.previsibleMontoAbonado ?? 0) < m.monto,
-    )
-    .sort((a, b) => a.previsibleFechaLimite!.localeCompare(b.previsibleFechaLimite!))
-    .slice(0, 3);
+  // Fix RF05 (.claude/fix-rf05-listado-previsibles.md): esta tarjeta es
+  // el único listado de previsibles que existe en la app — no hay una
+  // pantalla aparte con el listado completo — así que tenía que mostrar
+  // todos, no solo los primeros 3 (antes tenía un `.slice(0, 3)` acá).
+  const gastosPrevisiblesProximos = previsiblesPendientesOrdenados(
+    todosLosMovimientos,
+  );
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
