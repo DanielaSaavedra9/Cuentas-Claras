@@ -6,7 +6,13 @@ jest.mock("firebase/firestore", () => ({
   serverTimestamp: jest.fn(() => "SERVER_TIMESTAMP"),
 }));
 
-jest.mock("../../firebaseConfig", () => ({ db: {} }));
+jest.mock("firebase/auth", () => ({
+  deleteUser: jest.fn(),
+  EmailAuthProvider: { credential: jest.fn() },
+  reauthenticateWithCredential: jest.fn(),
+}));
+
+jest.mock("../../firebaseConfig", () => ({ db: {}, auth: { currentUser: null } }));
 
 import { getDoc, setDoc } from "firebase/firestore";
 

@@ -1,0 +1,29 @@
+PASS services/__tests__/usuarios.test.ts
+PASS services/__tests__/movimientos.integration.test.ts
+PASS services/__tests__/registro.integration.test.ts
+PASS utils/__tests__/creditoConsumo.test.ts
+PASS utils/__tests__/previsibles.test.ts
+PASS utils/__tests__/balance.test.ts
+PASS services/__tests__/previsibles.integration.test.ts
+PASS services/__tests__/movimientos.test.ts
+PASS utils/__tests__/balance.integration.test.ts
+PASS utils/__tests__/cuentaAhorro.test.ts
+PASS constants/__tests__/glosario.test.ts
+PASS utils/__tests__/authErrors.test.ts
+PASS services/__tests__/escenarios.integration.test.ts
+PASS components/__tests__/movimiento-form.schema.test.ts
+PASS app/__tests__/login.schema.test.ts (12.123 s)
+PASS app/__tests__/recuperar-contrasena.schema.test.ts (12.095 s)
+PASS app/__tests__/registro.schema.test.ts (12.121 s)
+-------------|---------|----------|---------|---------|-------------------
+File         | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------|---------|----------|---------|---------|-------------------
+All files    |     100 |    94.44 |     100 |     100 |                   
+ usuarios.ts |     100 |    94.44 |     100 |     100 | 76                
+-------------|---------|----------|---------|---------|-------------------
+
+Test Suites: 17 passed, 17 total
+Tests:       164 passed, 164 total
+Snapshots:   0 total
+Time:        13.103 s
+Ran all test suites.
