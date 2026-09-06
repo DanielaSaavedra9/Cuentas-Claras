@@ -1,0 +1,16 @@
+
+> cuentas-claras@1.0.0 test
+> jest
+
+PASS services/__tests__/usuarios.test.ts
+PASS services/__tests__/registro.integration.test.ts
+PASS utils/__tests__/authErrors.test.ts
+PASS app/__tests__/recuperar-contrasena.schema.test.ts
+PASS app/__tests__/login.schema.test.ts
+PASS app/__tests__/registro.schema.test.ts
+
+Test Suites: 6 passed, 6 total
+Tests:       29 passed, 29 total
+Snapshots:   0 total
+Time:        3.45 s
+Ran all test suites.

@@ -10,7 +10,12 @@ export function useThemeColor(
   props: { light?: string; dark?: string },
   colorName: keyof typeof Colors.light & keyof typeof Colors.dark
 ) {
-  const theme = useColorScheme() ?? 'light';
+  // Chore SDK 57: `ColorSchemeName` ahora incluye 'unspecified' (estado de
+  // tema no definido de Android) además de 'light' | 'dark' | null |
+  // undefined — el `?? 'light'` de antes dejaba pasar 'unspecified' y
+  // rompía el índice de {light, dark}. Cualquier valor que no sea 'dark'
+  // cae a 'light'.
+  const theme = useColorScheme() === 'dark' ? 'dark' : 'light';
   const colorFromProps = props[theme];
 
   if (colorFromProps) {

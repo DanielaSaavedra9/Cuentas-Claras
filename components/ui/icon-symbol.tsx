@@ -1,11 +1,16 @@
 // Fallback for using MaterialIcons on Android and web.
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { SymbolWeight, SymbolViewProps } from 'expo-symbols';
+import { SFSymbol, SymbolWeight } from 'expo-symbols';
 import { ComponentProps } from 'react';
 import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
 
-type IconMapping = Record<SymbolViewProps['name'], ComponentProps<typeof MaterialIcons>['name']>;
+// Chore SDK 57: `SymbolViewProps['name']` pasó a aceptar también un objeto
+// `{ ios?, android?, web? }` (símbolo distinto por plataforma), lo que
+// rompe su uso como key de un Record. Acá solo se necesita el símbolo de
+// iOS en texto plano, así que se usa `SFSymbol` (el tipo que expo-symbols
+// re-exporta para eso) en vez de todo `SymbolViewProps['name']`.
+type IconMapping = Record<SFSymbol, ComponentProps<typeof MaterialIcons>['name']>;
 type IconSymbolName = keyof typeof MAPPING;
 
 /**
